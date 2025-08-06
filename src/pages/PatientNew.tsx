@@ -31,14 +31,29 @@ const PatientNew = () => {
     setLoading(true);
 
     try {
-      // First, create the profile
+      // Get clinic_id from auth context  
+      const { data: userProfile } = await supabase
+        .from('clinic_members')
+        .select('clinic_id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!userProfile?.clinic_id) {
+        throw new Error('Usuário não está associado a uma clínica');
+      }
+
+      // First, create a dummy user_id (we'll use a random UUID since this is a non-auth patient)
+      const dummyUserId = crypto.randomUUID();
+
+      // Create the profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert({
+          user_id: dummyUserId,
           full_name: formData.full_name,
           email: formData.email,
-          phone: formData.phone,
-          role: 'patient'
+          phone: formData.phone || null,
+          role: 'patient' as const
         })
         .select()
         .single();
@@ -50,6 +65,7 @@ const PatientNew = () => {
         .from('patients')
         .insert({
           profile_id: profileData.id,
+          clinic_id: userProfile.clinic_id,
           cpf: formData.cpf || null,
           date_of_birth: formData.date_of_birth || null,
           address: formData.address || null,

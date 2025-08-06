@@ -190,6 +190,15 @@ const Calendar = () => {
               eventClick={handleEventClick}
               height="auto"
               locale="pt-br"
+              buttonText={{
+                today: 'Hoje',
+                month: 'Mês',
+                week: 'Semana',
+                day: 'Dia'
+              }}
+              dayHeaderFormat={{
+                weekday: 'short'
+              }}
               eventTimeFormat={{
                 hour: '2-digit',
                 minute: '2-digit',
@@ -209,6 +218,8 @@ const Calendar = () => {
                 startTime: '08:00',
                 endTime: '18:00'
               }}
+              allDayText="Dia todo"
+              noEventsText="Nenhuma consulta"
             />
           </CardContent>
         </Card>

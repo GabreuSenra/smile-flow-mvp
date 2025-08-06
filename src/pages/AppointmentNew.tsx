@@ -92,18 +92,30 @@ const AppointmentNew = () => {
       // Combine date and time
       const appointmentDateTime = new Date(`${formData.appointment_date}T${formData.appointment_time}:00`).toISOString();
 
+      // Get clinic_id from auth context
+      const { data: userProfile } = await supabase
+        .from('clinic_members')
+        .select('clinic_id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!userProfile?.clinic_id) {
+        throw new Error('Usuário não está associado a uma clínica');
+      }
+
       const { error } = await supabase
         .from('appointments')
         .insert({
           patient_id: formData.patient_id,
           dentist_id: formData.dentist_id,
+          clinic_id: userProfile.clinic_id,
           title: formData.title,
           description: formData.description || null,
           appointment_date: appointmentDateTime,
           duration_minutes: formData.duration_minutes,
           treatment_type: formData.treatment_type || null,
           price: formData.price ? parseFloat(formData.price) : null,
-          status: formData.status
+          status: formData.status as 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
         });
 
       if (error) throw error;
