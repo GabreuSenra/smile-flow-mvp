@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Stethoscope, Mail, Lock, User } from 'lucide-react';
+import { Stethoscope, Mail, Lock, User, Building2, Phone, MapPin } from 'lucide-react';
 
 const Auth = () => {
   const { user, signIn, signUp } = useAuth();
@@ -36,14 +37,21 @@ const Auth = () => {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const fullName = formData.get('fullName') as string;
+    const clinicName = formData.get('clinicName') as string;
+    const clinicPhone = formData.get('clinicPhone') as string;
+    const clinicAddress = formData.get('clinicAddress') as string;
     
-    await signUp(email, password, fullName);
+    await signUp(email, password, fullName, {
+      clinic_name: clinicName,
+      clinic_phone: clinicPhone,
+      clinic_address: clinicAddress
+    });
     setIsLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <div className="p-3 bg-white rounded-full shadow-soft">
@@ -104,53 +112,107 @@ const Auth = () => {
                 </form>
               </TabsContent>
               
-              <TabsContent value="signup" className="space-y-4">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome completo</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-name"
-                        name="fullName"
-                        type="text"
-                        placeholder="Seu nome completo"
-                        className="pl-10"
-                        required
-                      />
+              <TabsContent value="signup" className="space-y-6">
+                <form onSubmit={handleSignUp} className="space-y-6">
+                  {/* Dados pessoais */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Dados Pessoais</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-name">Nome completo</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="signup-name"
+                            name="fullName"
+                            type="text"
+                            placeholder="Seu nome completo"
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="signup-email"
+                            name="email"
+                            type="email"
+                            placeholder="seu@email.com"
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Senha</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="signup-password"
+                          name="password"
+                          type="password"
+                          placeholder="••••••••"
+                          className="pl-10"
+                          minLength={6}
+                          required
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-email"
-                        name="email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        className="pl-10"
-                        required
-                      />
+
+                  {/* Dados da clínica */}
+                  <div className="space-y-4 border-t pt-6">
+                    <h3 className="font-semibold text-lg">Dados da Clínica</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="clinic-name">Nome da Clínica *</Label>
+                        <div className="relative">
+                          <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="clinic-name"
+                            name="clinicName"
+                            type="text"
+                            placeholder="Ex: Clínica Dental Smile"
+                            className="pl-10"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="clinic-phone">Telefone da Clínica</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="clinic-phone"
+                            name="clinicPhone"
+                            type="tel"
+                            placeholder="(11) 99999-9999"
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="clinic-address">Endereço da Clínica</Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Textarea
+                            id="clinic-address"
+                            name="clinicAddress"
+                            placeholder="Rua, número, bairro, cidade - UF"
+                            className="pl-10"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-password"
-                        name="password"
-                        type="password"
-                        placeholder="••••••••"
-                        className="pl-10"
-                        minLength={6}
-                        required
-                      />
-                    </div>
-                  </div>
+                  
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Cadastrando...' : 'Criar conta'}
+                    {isLoading ? 'Criando conta...' : 'Criar Conta e Clínica'}
                   </Button>
                 </form>
               </TabsContent>
