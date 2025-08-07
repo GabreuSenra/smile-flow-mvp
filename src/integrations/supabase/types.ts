@@ -139,11 +139,14 @@ export type Database = {
           max_patients: number | null
           name: string
           phone: string | null
+          stripe_customer_id: string | null
           subscription_active: boolean | null
           subscription_end_date: string | null
           subscription_plan:
             | Database["public"]["Enums"]["subscription_plan"]
             | null
+          subscription_status: string | null
+          trial_end_date: string | null
           updated_at: string
         }
         Insert: {
@@ -155,11 +158,14 @@ export type Database = {
           max_patients?: number | null
           name: string
           phone?: string | null
+          stripe_customer_id?: string | null
           subscription_active?: boolean | null
           subscription_end_date?: string | null
           subscription_plan?:
             | Database["public"]["Enums"]["subscription_plan"]
             | null
+          subscription_status?: string | null
+          trial_end_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -171,11 +177,14 @@ export type Database = {
           max_patients?: number | null
           name?: string
           phone?: string | null
+          stripe_customer_id?: string | null
           subscription_active?: boolean | null
           subscription_end_date?: string | null
           subscription_plan?:
             | Database["public"]["Enums"]["subscription_plan"]
             | null
+          subscription_status?: string | null
+          trial_end_date?: string | null
           updated_at?: string
         }
         Relationships: []
