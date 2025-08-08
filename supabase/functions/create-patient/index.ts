@@ -78,19 +78,41 @@ serve(async (req) => {
     // Create patient profile with a random UUID (non-auth user)
     const dummyUserId = crypto.randomUUID();
 
-    const { data: newProfile, error: insertProfileError } = await supabase
-      .from('profiles')
-      .insert({
-        user_id: dummyUserId,
-        full_name,
-        email,
-        phone: phone || null,
-        role: 'patient',
-      })
-      .select()
-      .single();
+    let newProfile;
+    {
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: dummyUserId,
+          full_name,
+          email,
+          phone: phone || null,
+          role: 'patient',
+        })
+        .select()
+        .single();
 
-    if (insertProfileError) throw insertProfileError;
+      if (error) {
+        // Handle duplicate email gracefully
+        // @ts-ignore - PostgrestError has code
+        if ((error as any).code === '23505') {
+          logStep('Profile exists, reusing', { email });
+          const { data: existing, error: fetchExistingErr } = await supabase
+            .from('profiles')
+            .select('id, email')
+            .eq('email', email)
+            .maybeSingle();
+          if (fetchExistingErr || !existing) throw (fetchExistingErr || new Error('Perfil já existe mas não pôde ser recuperado'));
+          // @ts-ignore
+          newProfile = existing;
+        } else {
+          throw error;
+        }
+      } else {
+        // @ts-ignore
+        newProfile = data;
+      }
+    }
 
     const { data: patient, error: insertPatientError } = await supabase
       .from('patients')
@@ -121,11 +143,12 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const err = error as any;
+    const message = err?.message || JSON.stringify(err);
     logStep('ERROR', { message });
-    return new Response(JSON.stringify({ error: message }), {
+    return new Response(JSON.stringify({ success: false, error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     });
   }
 });
