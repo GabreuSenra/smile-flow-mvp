@@ -58,7 +58,7 @@ const Plans = () => {
     {
       id: 'enterprise',
       name: 'Enterprise',
-      price: 'R$ 199',
+      price: 'R$ 150',
       period: '/mês',
       description: 'Para clínicas grandes e redes',
       icon: Zap,

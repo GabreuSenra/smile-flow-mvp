@@ -51,7 +51,7 @@ serve(async (req) => {
     const planPrices = {
       basic: { amount: 4900, name: "Plano Básico" }, // R$ 49,00
       premium: { amount: 9900, name: "Plano Premium" }, // R$ 99,00
-      enterprise: { amount: 19900, name: "Plano Enterprise" } // R$ 199,00
+      enterprise: { amount: 15000, name: "Plano Enterprise" } // R$ 150,00
     };
 
     const selectedPlan = planPrices[plan as keyof typeof planPrices];
