@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarPlus, User, Clock, Stethoscope, Eye } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CalendarPlus, User, Clock } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -15,23 +15,16 @@ import { toast } from 'sonner';
 
 interface Appointment {
   id: string;
-  appointment_date: string;
-  title: string;
-  description: string | null;
+  date: string;
+  time: string;
+  duration: number;
   status: string;
   treatment_type: string | null;
   price: number | null;
-  duration_minutes: number | null;
+  notes: string | null;
   patients: {
-    profiles: {
-      full_name: string;
-      phone: string | null;
-    };
-  };
-  dentists: {
-    profiles: {
-      full_name: string;
-    };
+    full_name: string;
+    phone: string | null;
   };
 }
 
@@ -50,20 +43,21 @@ const Calendar = () => {
       const { data, error } = await supabase
         .from('appointments')
         .select(`
-          *,
+          id,
+          date,
+          time,
+          duration,
+          status,
+          treatment_type,
+          price,
+          notes,
           patients:patient_id (
-            profiles:profile_id (
-              full_name,
-              phone
-            )
-          ),
-          dentists:dentist_id (
-            profiles:profile_id (
-              full_name
-            )
+            full_name,
+            phone
           )
         `)
-        .order('appointment_date', { ascending: true });
+        .order('date', { ascending: true })
+        .order('time', { ascending: true });
 
       if (error) throw error;
       setAppointments(data || []);
@@ -76,47 +70,51 @@ const Calendar = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return '#3b82f6'; // blue
-      case 'completed': return '#10b981'; // green
-      case 'cancelled': return '#ef4444'; // red
-      default: return '#6b7280'; // gray
+      case 'scheduled': return '#3b82f6';
+      case 'confirmed': return '#10b981';
+      case 'completed': return '#059669';
+      case 'cancelled': return '#ef4444';
+      case 'no_show': return '#facc15';
+      default: return '#6b7280';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
       case 'scheduled': return 'Agendada';
+      case 'confirmed': return 'Confirmada';
       case 'completed': return 'Concluída';
       case 'cancelled': return 'Cancelada';
+      case 'no_show': return 'Falta';
       default: return status;
     }
   };
 
-  const calendarEvents = appointments.map(appointment => ({
-    id: appointment.id,
-    title: `${appointment.title} - ${appointment.patients.profiles.full_name}`,
-    start: appointment.appointment_date,
-    end: appointment.duration_minutes 
-      ? new Date(new Date(appointment.appointment_date).getTime() + appointment.duration_minutes * 60000).toISOString()
-      : appointment.appointment_date,
-    backgroundColor: getStatusColor(appointment.status),
-    borderColor: getStatusColor(appointment.status),
-    extendedProps: {
-      appointment: appointment
-    }
-  }));
+  const calendarEvents = appointments.map((appointment) => {
+    const startDateTime = new Date(`${appointment.date}T${appointment.time}`);
+    const endDateTime = new Date(startDateTime.getTime() + (appointment.duration || 0) * 60000);
+
+    return {
+      id: appointment.id,
+      title: appointment.patients.full_name || 'Paciente não informado',
+      start: startDateTime.toISOString(),
+      end: endDateTime.toISOString(),
+      backgroundColor: getStatusColor(appointment.status),
+      borderColor: getStatusColor(appointment.status),
+      extendedProps: { appointment }
+    };
+  });
 
   const handleEventClick = (info: any) => {
-    const appointment = info.event.extendedProps.appointment;
-    setSelectedAppointment(appointment);
+    setSelectedAppointment(info.event.extendedProps.appointment);
     setDialogOpen(true);
   };
 
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
+  const formatDateTime = (date: string, time: string) => {
+    const dateObj = new Date(`${date}T${time}`);
     return {
-      date: date.toLocaleDateString('pt-BR'),
-      time: date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      date: dateObj.toLocaleDateString('pt-BR'),
+      time: dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     };
   };
 
@@ -124,12 +122,7 @@ const Calendar = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="p-6">
-          <div className="animate-pulse">
-            <div className="h-8 bg-secondary rounded w-1/3 mb-4"></div>
-            <div className="h-96 bg-secondary rounded"></div>
-          </div>
-        </div>
+        <div className="p-6">Carregando calendário...</div>
       </div>
     );
   }
@@ -137,15 +130,11 @@ const Calendar = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
       <div className="p-6 space-y-6">
-        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Calendário</h1>
-            <p className="text-muted-foreground">
-              Visualize todas as consultas em um calendário interativo
-            </p>
+            <p className="text-muted-foreground">Visualize todas as consultas</p>
           </div>
           <Link to="/appointments/new">
             <Button>
@@ -155,27 +144,6 @@ const Calendar = () => {
           </Link>
         </div>
 
-        {/* Legend */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#3b82f6' }}></div>
-                <span className="text-sm">Agendada</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#10b981' }}></div>
-                <span className="text-sm">Concluída</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef4444' }}></div>
-                <span className="text-sm">Cancelada</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Calendar */}
         <Card>
           <CardContent className="p-6">
             <FullCalendar
@@ -196,109 +164,60 @@ const Calendar = () => {
                 week: 'Semana',
                 day: 'Dia'
               }}
-              dayHeaderFormat={{
-                weekday: 'short'
-              }}
               eventTimeFormat={{
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: false
               }}
-              slotLabelFormat={{
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              }}
-              firstDay={1} // Monday
-              dayMaxEvents={3}
-              moreLinkText="mais"
-              eventDisplay="block"
-              businessHours={{
-                daysOfWeek: [1, 2, 3, 4, 5], // Monday - Friday
-                startTime: '08:00',
-                endTime: '18:00'
-              }}
-              allDayText="Dia todo"
-              noEventsText="Nenhuma consulta"
             />
           </CardContent>
         </Card>
 
-        {/* Appointment Details Dialog */}
+        {/* Dialog de detalhes */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-w-md">
             {selectedAppointment && (
               <>
                 <DialogHeader>
-                  <DialogTitle>{selectedAppointment.title}</DialogTitle>
+                  <DialogTitle>Detalhes da consulta</DialogTitle>
                   <DialogDescription>
-                    Detalhes da consulta
+                    Informações completas sobre a consulta
                   </DialogDescription>
                 </DialogHeader>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-sm">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <Badge style={{ backgroundColor: getStatusColor(selectedAppointment.status), color: 'white' }}>
                       {getStatusText(selectedAppointment.status)}
                     </Badge>
                     {selectedAppointment.price && (
                       <span className="font-semibold">
-                        R$ {selectedAppointment.price.toFixed(2)}
+                        R$ {Number(selectedAppointment.price).toFixed(2)}
                       </span>
                     )}
                   </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center text-sm">
-                      <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span>{selectedAppointment.patients.profiles.full_name}</span>
-                    </div>
-                    
-                    {selectedAppointment.patients.profiles.phone && (
-                      <div className="flex items-center text-sm">
-                        <span className="ml-6 text-muted-foreground">
-                          {selectedAppointment.patients.profiles.phone}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center text-sm">
-                      <Stethoscope className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span>Dr. {selectedAppointment.dentists.profiles.full_name}</span>
-                    </div>
-                    
-                    <div className="flex items-center text-sm">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span>
-                        {formatDateTime(selectedAppointment.appointment_date).date} às {formatDateTime(selectedAppointment.appointment_date).time}
-                        {selectedAppointment.duration_minutes && ` (${selectedAppointment.duration_minutes}min)`}
-                      </span>
-                    </div>
-                    
-                    {selectedAppointment.treatment_type && (
-                      <div className="text-sm">
-                        <span className="font-medium">Tipo: </span>
-                        {selectedAppointment.treatment_type}
-                      </div>
-                    )}
-                    
-                    {selectedAppointment.description && (
-                      <div className="text-sm">
-                        <span className="font-medium">Observações: </span>
-                        {selectedAppointment.description}
-                      </div>
-                    )}
+                  <div className="flex items-center text-sm">
+                    <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                    {selectedAppointment.patients.full_name}
                   </div>
-                  
-                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Detalhes
-                    </Button>
-                    <Button size="sm">
-                      Editar
-                    </Button>
+                  {selectedAppointment.patients.phone && (
+                    <div className="ml-6 text-sm text-muted-foreground">
+                      {selectedAppointment.patients.phone}
+                    </div>
+                  )}
+                  <div className="flex items-center text-sm">
+                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                    {formatDateTime(selectedAppointment.date, selectedAppointment.time).date} às {formatDateTime(selectedAppointment.date, selectedAppointment.time).time} ({selectedAppointment.duration} min)
                   </div>
+                  {selectedAppointment.treatment_type && (
+                    <div className="text-sm">
+                      <span className="font-medium">Tipo:</span> {selectedAppointment.treatment_type}
+                    </div>
+                  )}
+                  {selectedAppointment.notes && (
+                    <div className="text-sm">
+                      <span className="font-medium">Observações:</span> {selectedAppointment.notes}
+                    </div>
+                  )}
                 </div>
               </>
             )}

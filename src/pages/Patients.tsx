@@ -2,37 +2,26 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  UserPlus, 
-  Search, 
-  Eye, 
-  Calendar,
-  Phone,
-  Mail
-} from 'lucide-react';
+import { UserPlus, Search, Eye, Calendar, Phone, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface Patient {
   id: string;
-  profile_id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
   cpf: string | null;
+  birth_date: string | null;
   address: string | null;
-  date_of_birth: string | null;
   emergency_contact: string | null;
-  emergency_phone: string | null;
   allergies: string | null;
   medical_conditions: string | null;
   clinic_id: string;
   created_at: string;
-  profiles: {
-    full_name: string;
-    email: string;
-    phone: string | null;
-  };
 }
 
 const Patients = () => {
@@ -45,31 +34,45 @@ const Patients = () => {
   }, []);
 
   const fetchPatients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('patients')
-        .select(`
-          *,
-          profiles:profile_id (
-            full_name,
-            email,
-            phone
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setPatients(data || []);
-    } catch (error: any) {
-      toast.error('Erro ao carregar pacientes: ' + error.message);
-    } finally {
-      setLoading(false);
+  try {
+    // 🔹 1. Obter sessão do usuário
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      toast.error('Sessão inválida, faça login novamente.');
+      return;
     }
-  };
+
+    // 🔹 2. Obter clinic_id do usuário
+    const { data: membership, error: memberError } = await supabase
+      .from('clinic_members')
+      .select('clinic_id')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (memberError || !membership) {
+      toast.error('Não foi possível encontrar a clínica associada a este usuário.');
+      return;
+    }
+
+    // 🔹 3. Buscar apenas pacientes dessa clínica
+    const { data, error } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('clinic_id', membership.clinic_id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    setPatients(data || []);
+  } catch (error: any) {
+    toast.error('Erro ao carregar pacientes: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const filteredPatients = patients.filter(patient =>
-    patient.profiles.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    patient.profiles.email.toLowerCase().includes(search.toLowerCase()) ||
+    patient.full_name.toLowerCase().includes(search.toLowerCase()) ||
+    (patient.email && patient.email.toLowerCase().includes(search.toLowerCase())) ||
     (patient.cpf && patient.cpf.includes(search))
   );
 
@@ -106,7 +109,7 @@ const Patients = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -161,29 +164,29 @@ const Patients = () => {
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
                         <span className="text-primary-foreground font-medium text-lg">
-                          {patient.profiles.full_name.charAt(0)}
+                          {patient.full_name.charAt(0)}
                         </span>
                       </div>
                       <div className="space-y-1">
-                        <h3 className="font-semibold text-lg">{patient.profiles.full_name}</h3>
+                        <h3 className="font-semibold text-lg">{patient.full_name}</h3>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          {patient.profiles.email && (
+                          {patient.email && (
                             <div className="flex items-center">
                               <Mail className="h-3 w-3 mr-1" />
-                              {patient.profiles.email}
+                              {patient.email}
                             </div>
                           )}
-                          {patient.profiles.phone && (
+                          {patient.phone && (
                             <div className="flex items-center">
                               <Phone className="h-3 w-3 mr-1" />
-                              {patient.profiles.phone}
+                              {patient.phone}
                             </div>
                           )}
                         </div>
                         <div className="flex items-center space-x-2">
-                          {patient.date_of_birth && (
+                          {patient.birth_date && (
                             <Badge variant="secondary">
-                              {calculateAge(patient.date_of_birth)} anos
+                              {calculateAge(patient.birth_date)} anos
                             </Badge>
                           )}
                           {patient.cpf && (
@@ -194,7 +197,7 @@ const Patients = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Link to={`/appointments/new?patient=${patient.id}`}>
                         <Button variant="outline" size="sm">

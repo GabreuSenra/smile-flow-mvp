@@ -91,7 +91,6 @@ export type Database = {
         Row: {
           clinic_id: string
           id: string
-          is_active: boolean | null
           joined_at: string
           role: Database["public"]["Enums"]["user_role"]
           user_id: string
@@ -99,7 +98,6 @@ export type Database = {
         Insert: {
           clinic_id: string
           id?: string
-          is_active?: boolean | null
           joined_at?: string
           role: Database["public"]["Enums"]["user_role"]
           user_id: string
@@ -107,7 +105,6 @@ export type Database = {
         Update: {
           clinic_id?: string
           id?: string
-          is_active?: boolean | null
           joined_at?: string
           role?: Database["public"]["Enums"]["user_role"]
           user_id?: string

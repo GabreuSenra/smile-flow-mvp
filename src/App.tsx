@@ -16,7 +16,12 @@ import PatientDetail from "./pages/PatientDetail";
 import PatientsNew from "./pages/PatientNew";
 import Reports from "./pages/Reports";
 import Plans from "./pages/Plans";
+import SetupClinic from "./pages/SetupClinic";
 import NotFound from "./pages/NotFound";
+import EditAppointment from "./pages/EditAppointment";
+import WhatsAppSettingsPage from "./pages/WhatsAppSettings";
+import Settings from "./pages/Settings";
+import TreatmentTypes from "./pages/TreatmentTypes";
 
 const queryClient = new QueryClient();
 
@@ -94,7 +99,47 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route
+              path="/setup-clinic"
+              element={
+                <ProtectedRoute>
+                  <SetupClinic />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/appointments/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EditAppointment />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/whats-settings"
+              element={
+                <ProtectedRoute>
+                  <WhatsAppSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings/>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/treatment-types"
+              element={
+                <ProtectedRoute>
+                  <TreatmentTypes/>
+                </ProtectedRoute>
+              }
+            />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

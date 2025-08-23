@@ -20,11 +20,9 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
     const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    
+    const email = (formData.get('email') as string) || '';
+    const password = (formData.get('password') as string) || '';
     await signIn(email, password);
     setIsLoading(false);
   };
@@ -32,20 +30,17 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    const fullName = formData.get('fullName') as string;
-    const clinicName = formData.get('clinicName') as string;
-    const clinicPhone = formData.get('clinicPhone') as string;
-    const clinicAddress = formData.get('clinicAddress') as string;
-    
-    await signUp(email, password, fullName, {
-      clinic_name: clinicName,
-      clinic_phone: clinicPhone,
-      clinic_address: clinicAddress
-    });
+    const email = (formData.get('email') as string) || '';
+    const password = (formData.get('password') as string) || '';
+    const fullName = (formData.get('fullName') as string) || '';
+    const clinicName = (formData.get('clinicName') as string) || '';
+    const clinicPhone = (formData.get('clinicPhone') as string) || '';
+    const clinicAddress = (formData.get('clinicAddress') as string) || '';
+
+    await signUp(email, password, fullName);
+
     setIsLoading(false);
   };
 
@@ -78,32 +73,19 @@ const Auth = () => {
               
               <TabsContent value="signin" className="space-y-4">
                 <form onSubmit={handleSignIn} className="space-y-4">
+                  {/* ... campos de login (igual ao que você já tem) */}
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-email"
-                        name="email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        className="pl-10"
-                        required
-                      />
+                      <Input id="signin-email" name="email" type="email" required className="pl-10" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signin-password">Senha</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-password"
-                        name="password"
-                        type="password"
-                        placeholder="••••••••"
-                        className="pl-10"
-                        required
-                      />
+                      <Input id="signin-password" name="password" type="password" required className="pl-10" />
                     </div>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
@@ -122,28 +104,14 @@ const Auth = () => {
                         <Label htmlFor="signup-name">Nome completo</Label>
                         <div className="relative">
                           <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="signup-name"
-                            name="fullName"
-                            type="text"
-                            placeholder="Seu nome completo"
-                            className="pl-10"
-                            required
-                          />
+                          <Input id="signup-name" name="fullName" type="text" required className="pl-10" />
                         </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="signup-email">Email</Label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="signup-email"
-                            name="email"
-                            type="email"
-                            placeholder="seu@email.com"
-                            className="pl-10"
-                            required
-                          />
+                          <Input id="signup-email" name="email" type="email" required className="pl-10" />
                         </div>
                       </div>
                     </div>
@@ -151,68 +119,14 @@ const Auth = () => {
                       <Label htmlFor="signup-password">Senha</Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="signup-password"
-                          name="password"
-                          type="password"
-                          placeholder="••••••••"
-                          className="pl-10"
-                          minLength={6}
-                          required
-                        />
+                        <Input id="signup-password" name="password" type="password" required minLength={6} className="pl-10" />
                       </div>
                     </div>
                   </div>
 
-                  {/* Dados da clínica */}
-                  <div className="space-y-4 border-t pt-6">
-                    <h3 className="font-semibold text-lg">Dados da Clínica</h3>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="clinic-name">Nome da Clínica *</Label>
-                        <div className="relative">
-                          <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="clinic-name"
-                            name="clinicName"
-                            type="text"
-                            placeholder="Ex: Clínica Dental Smile"
-                            className="pl-10"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="clinic-phone">Telefone da Clínica</Label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            id="clinic-phone"
-                            name="clinicPhone"
-                            type="tel"
-                            placeholder="(11) 99999-9999"
-                            className="pl-10"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="clinic-address">Endereço da Clínica</Label>
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                          <Textarea
-                            id="clinic-address"
-                            name="clinicAddress"
-                            placeholder="Rua, número, bairro, cidade - UF"
-                            className="pl-10"
-                            rows={2}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
+
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Criando conta...' : 'Criar Conta e Clínica'}
+                    {isLoading ? 'Criando conta...' : 'Criar Conta'}
                   </Button>
                 </form>
               </TabsContent>

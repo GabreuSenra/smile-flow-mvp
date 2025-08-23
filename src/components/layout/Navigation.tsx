@@ -5,7 +5,8 @@ import {
   Calendar, 
   CalendarPlus,
   FileText,
-  CreditCard
+  CreditCard,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,7 @@ const navigation = [
   { name: 'Consultas', href: '/appointments', icon: CalendarPlus },
   { name: 'Calendário', href: '/calendar', icon: Calendar },
   { name: 'Relatórios', href: '/reports', icon: FileText },
+  //{ name: 'Configurações', href: '/settings', icon: Settings }, 
   { name: 'Planos', href: '/plans', icon: CreditCard },
 ];
 

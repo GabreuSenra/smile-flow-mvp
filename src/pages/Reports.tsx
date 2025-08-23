@@ -4,13 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -18,14 +18,7 @@ import {
   LineChart,
   Line
 } from 'recharts';
-import { 
-  TrendingUp, 
-  Users, 
-  Calendar,
-  DollarSign,
-  Download,
-  FileText
-} from 'lucide-react';
+import { TrendingUp, Users, Calendar, DollarSign, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DateRange } from 'react-day-picker';
@@ -45,11 +38,10 @@ const Reports = () => {
   });
 
   useEffect(() => {
-    // Set default date range to current month
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
+
     setDateRange({
       from: firstDay,
       to: lastDay
@@ -64,44 +56,40 @@ const Reports = () => {
 
   const fetchReportData = async () => {
     if (!dateRange?.from || !dateRange?.to) return;
-    
+
     setLoading(true);
     try {
-      const startDate = dateRange.from.toISOString();
-      const endDate = dateRange.to.toISOString();
+      const startDate = dateRange.from.toISOString().split('T')[0];
+      const endDate = dateRange.to.toISOString().split('T')[0];
 
-      // Fetch appointments data
-      const { data: appointments } = await supabase
+      const { data: appointments, error } = await supabase
         .from('appointments')
         .select(`
           *,
           patients:patient_id (
-            profiles:profile_id (
-              full_name
-            )
+            id,
+            full_name
           )
         `)
-        .gte('appointment_date', startDate)
-        .lte('appointment_date', endDate);
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (error) throw error;
 
       if (appointments) {
-        // Process financial data
         const revenueByPeriod = processFinancialData(appointments, reportType);
         setFinancialData(revenueByPeriod);
 
-        // Process appointment stats
         const statusStats = processAppointmentStats(appointments);
         setAppointmentStats(statusStats);
 
-        // Process treatment types
         const treatments = processTreatmentTypes(appointments);
         setTreatmentTypes(treatments);
 
-        // Calculate summary
         const totalRevenue = appointments
           .filter(apt => apt.status === 'completed')
           .reduce((sum, apt) => sum + (apt.price || 0), 0);
-        
+
         const totalAppointments = appointments.length;
         const uniquePatients = new Set(appointments.map(apt => apt.patient_id)).size;
         const averageTicket = totalRevenue / (appointments.filter(apt => apt.status === 'completed').length || 1);
@@ -122,12 +110,12 @@ const Reports = () => {
 
   const processFinancialData = (appointments: any[], type: string) => {
     const data: { [key: string]: number } = {};
-    
+
     appointments.forEach(apt => {
       if (apt.status === 'completed' && apt.price) {
-        const date = new Date(apt.appointment_date);
+        const date = new Date(apt.date);
         let key: string;
-        
+
         if (type === 'daily') {
           key = date.toISOString().split('T')[0];
         } else if (type === 'weekly') {
@@ -137,7 +125,7 @@ const Reports = () => {
         } else {
           key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         }
-        
+
         data[key] = (data[key] || 0) + apt.price;
       }
     });
@@ -150,7 +138,7 @@ const Reports = () => {
 
   const processAppointmentStats = (appointments: any[]) => {
     const statusCount: { [key: string]: number } = {};
-    
+
     appointments.forEach(apt => {
       const status = apt.status || 'scheduled';
       statusCount[status] = (statusCount[status] || 0) + 1;
@@ -173,7 +161,7 @@ const Reports = () => {
 
   const processTreatmentTypes = (appointments: any[]) => {
     const treatmentCount: { [key: string]: number } = {};
-    
+
     appointments.forEach(apt => {
       const treatment = apt.treatment_type || 'Outros';
       treatmentCount[treatment] = (treatmentCount[treatment] || 0) + 1;
@@ -185,7 +173,49 @@ const Reports = () => {
     }));
   };
 
-  const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', '#8884d8'];
+  const COLORS = [
+    'hsl(var(--primary))',
+    'hsl(var(--secondary))',
+    'hsl(var(--accent))',
+    'hsl(var(--muted))',
+    '#8884d8'
+  ];
+
+  // Transforma a lista de tratamentos em formato por período para gráfico de linhas
+  const transformTreatmentDataByPeriod = (appointments: any[], type: string) => {
+    const grouped: Record<string, any> = {};
+
+    appointments.forEach(apt => {
+      const date = new Date(apt.date);
+      let period = '';
+      if (type === 'daily') {
+        period = apt.date;
+      } else if (type === 'weekly') {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        period = weekStart.toISOString().split('T')[0];
+      } else {
+        period = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+
+      if (!grouped[period]) grouped[period] = { period };
+
+      const treatment = apt.treatment_type || 'Outros';
+      grouped[period][treatment] = (grouped[period][treatment] || 0) + 1;
+    });
+
+    return Object.values(grouped).sort((a: any, b: any) => a.period.localeCompare(b.period));
+  };
+
+  // Extrai todos os tipos de tratamento únicos para criar as linhas no gráfico
+  const getTreatmentKeys = (appointments: any[]) => {
+    const keys = new Set<string>();
+    appointments.forEach(apt => {
+      keys.add(apt.treatment_type || 'Outros');
+    });
+    return Array.from(keys);
+  };
+
 
   if (loading) {
     return (
@@ -209,20 +239,15 @@ const Reports = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Relatórios</h1>
-            <p className="text-muted-foreground">
-              Analise o desempenho da sua clínica
-            </p>
+            <p className="text-muted-foreground">Analise o desempenho da sua clínica</p>
           </div>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar PDF
-          </Button>
+          
         </div>
 
         {/* Filters */}
@@ -231,16 +256,13 @@ const Reports = () => {
             <div className="flex flex-wrap items-center gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Período</label>
-                <DatePickerWithRange 
-                  date={dateRange} 
-                  onDateChange={setDateRange}
-                />
+                <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Agrupamento</label>
                 <Select value={reportType} onValueChange={setReportType}>
                   <SelectTrigger className="w-32">
-                    <SelectValue />
+                    <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="daily">Diário</SelectItem>
@@ -268,7 +290,7 @@ const Reports = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -280,7 +302,7 @@ const Reports = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -292,7 +314,7 @@ const Reports = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -318,15 +340,23 @@ const Reports = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={financialData}>
+                <LineChart data={financialData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="period" />
                   <YAxis />
-                  <Tooltip 
-                    formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Receita']}
+                  <Tooltip
+                    formatter={(value) => [
+                      `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+                      'Receita',
+                    ]}
                   />
-                  <Bar dataKey="revenue" fill="hsl(var(--primary))" />
-                </BarChart>
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -360,25 +390,6 @@ const Reports = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Treatment Types */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Tipos de Tratamento</CardTitle>
-            <CardDescription>Distribuição dos tipos de tratamento realizados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={treatmentTypes} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip />
-                <Bar dataKey="value" fill="hsl(var(--secondary))" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

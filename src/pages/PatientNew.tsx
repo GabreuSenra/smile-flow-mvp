@@ -1,223 +1,148 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Header } from '@/components/layout/Header';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-const PatientNew = () => {
+export default function PatientNew() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    cpf: '',
-    date_of_birth: '',
-    address: '',
-    emergency_contact: '',
-    emergency_phone: '',
-    allergies: '',
-    medical_conditions: ''
-  });
+  const [clinicId, setClinicId] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 1️⃣ Buscar clinic_id do usuário logado
+  useEffect(() => {
+    async function fetchClinicId() {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        toast.error('Sessão inválida, faça login novamente.');
+        navigate('/auth');
+        return;
+      }
+
+      const { data: membership, error: memberError } = await supabase
+        .from('clinic_members')
+        .select('clinic_id')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (memberError || !membership) {
+        toast.error('Não foi possível encontrar sua clínica.');
+        navigate('/setup-clinic');
+        return;
+      }
+
+      setClinicId(membership.clinic_id);
+    }
+
+    fetchClinicId();
+  }, [navigate]);
+
+  // 2️⃣ Cadastrar paciente
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Create patient via secure edge function
-      const { data, error } = await supabase.functions.invoke('create-patient', {
-        body: { ...formData }
-      });
+      if (!clinicId) {
+        toast.error('Clínica não encontrada para este usuário.');
+        return;
+      }
 
-      if (error) throw error as any;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      const form = e.currentTarget as HTMLFormElement;
+      const formData = new FormData(form);
+
+      const full_name = formData.get('full_name') as string;
+      const email = formData.get('email') as string;
+      const phone = formData.get('phone') as string;
+      const cpf = formData.get('cpf') as string;
+      const birth_date = formData.get('birth_date') as string;
+      const address = formData.get('address') as string;
+      const emergency_contact = formData.get('emergency_contact') as string;
+      const allergies = formData.get('allergies') as string;
+      const medical_conditions = formData.get('medical_conditions') as string;
+
+      const { error } = await supabase
+        .from('patients')
+        .insert([{
+          clinic_id: clinicId,
+          full_name,
+          email,
+          phone,
+          cpf,
+          birth_date,
+          address,
+          emergency_contact,
+          allergies,
+          medical_conditions
+        }]);
+
+      if (error) throw error;
 
       toast.success('Paciente cadastrado com sucesso!');
       navigate('/patients');
+
     } catch (error: any) {
-      toast.error('Erro ao cadastrar paciente: ' + error.message);
+      console.error('Erro ao cadastrar paciente:', error);
+      toast.error(error.message || 'Erro ao cadastrar paciente');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" onClick={() => navigate('/patients')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Novo Paciente</h1>
-            <p className="text-muted-foreground">
-              Cadastre um novo paciente na clínica
-            </p>
-          </div>
-        </div>
-
-        {/* Form */}
-        <Card className="max-w-4xl">
-          <CardHeader>
-            <CardTitle>Dados do Paciente</CardTitle>
-            <CardDescription>
-              Preencha as informações do paciente para cadastro
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Personal Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="full_name">Nome Completo *</Label>
-                  <Input
-                    id="full_name"
-                    name="full_name"
-                    value={formData.full_name}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
-                  <Input
-                    id="cpf"
-                    name="cpf"
-                    value={formData.cpf}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date_of_birth">Data de Nascimento</Label>
-                  <Input
-                    id="date_of_birth"
-                    name="date_of_birth"
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              {/* Address */}
-              <div className="space-y-2">
-                <Label htmlFor="address">Endereço</Label>
-                <Textarea
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  rows={2}
-                />
-              </div>
-
-              {/* Emergency Contact */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="emergency_contact">Contato de Emergência</Label>
-                  <Input
-                    id="emergency_contact"
-                    name="emergency_contact"
-                    value={formData.emergency_contact}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emergency_phone">Telefone de Emergência</Label>
-                  <Input
-                    id="emergency_phone"
-                    name="emergency_phone"
-                    value={formData.emergency_phone}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              {/* Medical Information */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="allergies">Alergias</Label>
-                  <Textarea
-                    id="allergies"
-                    name="allergies"
-                    value={formData.allergies}
-                    onChange={handleChange}
-                    rows={2}
-                    placeholder="Descreva as alergias conhecidas..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="medical_conditions">Condições Médicas</Label>
-                  <Textarea
-                    id="medical_conditions"
-                    name="medical_conditions"
-                    value={formData.medical_conditions}
-                    onChange={handleChange}
-                    rows={2}
-                    placeholder="Descreva condições médicas relevantes..."
-                  />
-                </div>
-              </div>
-
-              {/* Submit */}
-              <div className="flex justify-end space-x-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => navigate('/patients')}
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Salvando...' : 'Salvar Paciente'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle>Novo Paciente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Nome completo</Label>
+              <Input name="full_name" required />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input type="email" name="email" />
+            </div>
+            <div>
+              <Label>Telefone</Label>
+              <Input name="phone" />
+            </div>
+            <div>
+              <Label>CPF</Label>
+              <Input name="cpf" />
+            </div>
+            <div>
+              <Label>Data de nascimento</Label>
+              <Input type="date" name="birth_date" />
+            </div>
+            <div>
+              <Label>Endereço</Label>
+              <Input name="address" />
+            </div>
+            <div>
+              <Label>Contato de Emergência</Label>
+              <Input name="emergency_contact" />
+            </div>
+            <div>
+              <Label>Alergias</Label>
+              <Textarea name="allergies" />
+            </div>
+            <div>
+              <Label>Condições médicas</Label>
+              <Textarea name="medical_conditions" />
+            </div>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Salvando...' : 'Salvar Paciente'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default PatientNew;
+}

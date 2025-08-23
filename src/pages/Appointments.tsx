@@ -1,49 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  CalendarPlus, 
-  Search, 
-  Calendar,
-  Clock,
-  User,
-  Stethoscope
-} from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Edit, Eye, Calendar as CalendarIcon, User, Clock, Stethoscope } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface Appointment {
   id: string;
-  appointment_date: string;
-  title: string;
-  description: string | null;
+  date: string;
+  time: string;
+  duration: number;
   status: string;
   treatment_type: string | null;
   price: number | null;
-  duration_minutes: number | null;
+  notes: string | null;
   patients: {
-    profiles: {
-      full_name: string;
-      phone: string | null;
-    };
-  };
-  dentists: {
-    profiles: {
-      full_name: string;
-    };
+    full_name: string;
+    phone: string | null;
   };
 }
 
-const Appointments = () => {
+export default function Appointments() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchAppointments();
@@ -54,20 +39,21 @@ const Appointments = () => {
       const { data, error } = await supabase
         .from('appointments')
         .select(`
-          *,
+          id,
+          date,
+          time,
+          duration,
+          status,
+          treatment_type,
+          price,
+          notes,
           patients:patient_id (
-            profiles:profile_id (
-              full_name,
-              phone
-            )
-          ),
-          dentists:dentist_id (
-            profiles:profile_id (
-              full_name
-            )
+            full_name,
+            phone
           )
         `)
-        .order('appointment_date', { ascending: true });
+        .order('date', { ascending: true })
+        .order('time', { ascending: true });
 
       if (error) throw error;
       setAppointments(data || []);
@@ -80,204 +66,172 @@ const Appointments = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-500';
-      case 'completed': return 'bg-green-500';
-      case 'cancelled': return 'bg-red-500';
-      default: return 'bg-gray-500';
+      case 'scheduled': return 'bg-blue-500 text-white';
+      case 'confirmed': return 'bg-green-500 text-white';
+      case 'completed': return 'bg-emerald-500 text-white';
+      case 'cancelled': return 'bg-red-500 text-white';
+      case 'no_show': return 'bg-yellow-500 text-white';
+      default: return 'bg-gray-500 text-white';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
       case 'scheduled': return 'Agendada';
+      case 'confirmed': return 'Confirmada';
       case 'completed': return 'Concluída';
       case 'cancelled': return 'Cancelada';
+      case 'no_show': return 'Falta';
       default: return status;
     }
-  };
-
-  const filteredAppointments = appointments.filter(appointment => {
-    const matchesSearch = 
-      appointment.patients.profiles.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      appointment.title.toLowerCase().includes(search.toLowerCase()) ||
-      (appointment.treatment_type && appointment.treatment_type.toLowerCase().includes(search.toLowerCase()));
-    
-    const matchesStatus = statusFilter === 'all' || appointment.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
-    return {
-      date: date.toLocaleDateString('pt-BR'),
-      time: date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    };
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="p-6">
-          <div className="animate-pulse">
-            <div className="h-8 bg-secondary rounded w-1/3 mb-4"></div>
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-32 bg-secondary rounded"></div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <div className="p-6 text-center text-muted-foreground">Carregando consultas...</div>
       </div>
     );
+  }
+
+  function formatDate(date: string) {
+    const [year, month, day] = date.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
+  function formatTime(date: string) {
+    const [hour, minutes] = date.split(':');
+    return `${hour}:${minutes}`;
   }
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="p-6 space-y-6">
-        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Consultas</h1>
-            <p className="text-muted-foreground">
-              Gerencie as consultas da clínica
-            </p>
+            <p className="text-muted-foreground">Gerencie as consultas da clínica</p>
           </div>
           <Link to="/appointments/new">
             <Button>
-              <CalendarPlus className="h-4 w-4 mr-2" />
+              <CalendarIcon className="h-4 w-4 mr-2" />
               Nova Consulta
             </Button>
           </Link>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por paciente, título ou tipo de tratamento..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Status</SelectItem>
-              <SelectItem value="scheduled">Agendada</SelectItem>
-              <SelectItem value="completed">Concluída</SelectItem>
-              <SelectItem value="cancelled">Cancelada</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Appointments List */}
-        <div className="space-y-4">
-          {filteredAppointments.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p className="text-muted-foreground">
-                  {search || statusFilter !== 'all' 
-                    ? 'Nenhuma consulta encontrada com os filtros aplicados.' 
-                    : 'Nenhuma consulta agendada ainda.'
-                  }
-                </p>
-                {!search && statusFilter === 'all' && (
-                  <Link to="/appointments/new">
-                    <Button className="mt-4">
-                      <CalendarPlus className="h-4 w-4 mr-2" />
-                      Agendar Primeira Consulta
-                    </Button>
-                  </Link>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            filteredAppointments.map((appointment) => {
-              const { date, time } = formatDateTime(appointment.appointment_date);
-              
-              return (
-                <Card key={appointment.id} className="shadow-card">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-4 h-4 rounded-full ${getStatusColor(appointment.status)}`}></div>
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-4">
-                            <h3 className="font-semibold text-lg">{appointment.title}</h3>
-                            <Badge variant="outline">
-                              {getStatusText(appointment.status)}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                            <div className="flex items-center">
-                              <User className="h-3 w-3 mr-1" />
-                              {appointment.patients.profiles.full_name}
-                            </div>
-                            <div className="flex items-center">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {date}
-                            </div>
-                            <div className="flex items-center">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {time}
-                              {appointment.duration_minutes && ` (${appointment.duration_minutes}min)`}
-                            </div>
-                            {appointment.dentists?.profiles && (
-                              <div className="flex items-center">
-                                <Stethoscope className="h-3 w-3 mr-1" />
-                                Dr. {appointment.dentists.profiles.full_name}
-                              </div>
-                            )}
-                          </div>
-                          
-                          {appointment.treatment_type && (
-                            <p className="text-sm text-muted-foreground">
-                              Tipo: {appointment.treatment_type}
-                            </p>
-                          )}
-                          
-                          {appointment.description && (
-                            <p className="text-sm text-muted-foreground">
-                              {appointment.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="text-right">
-                        {appointment.price && (
-                          <p className="font-semibold text-lg">
-                            R$ {appointment.price.toFixed(2)}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-2 mt-2">
-                          <Button variant="outline" size="sm">
-                            Editar
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Ver Detalhes
-                          </Button>
-                        </div>
-                      </div>
+        {appointments.length === 0 ? (
+          <p className="text-muted-foreground">Nenhuma consulta cadastrada.</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {appointments.map((appointment) => (
+              <Card key={appointment.id} className="shadow-sm hover:shadow-md transition">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">
+                      {appointment.patients?.full_name || 'Paciente não informado'}
+                    </CardTitle>
+                    <Badge className={getStatusColor(appointment.status)}>
+                      {getStatusText(appointment.status)}
+                    </Badge>
+                  </div>
+                  <CardDescription>
+                    {appointment.treatment_type || 'Tratamento não especificado'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    { formatDate(appointment.date)}
+                  </div>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4 mr-2" />
+                    {formatTime(appointment.time)} ({appointment.duration} min)
+                  </div>
+                  {appointment.price && (
+                    <div className="text-sm font-semibold">
+                      R$ {Number(appointment.price).toFixed(2)}
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </div>
+                  )}
+                  <div className="flex justify-end space-x-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedAppointment(appointment);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      Ver Detalhes
+                    </Button>
+                    <Link to={`/appointments/${appointment.id}/edit`}>
+                      <Button size="sm">
+                        <Edit className="h-4 w-4 mr-1" />
+                        Editar
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Dialog de detalhes */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-md">
+            {selectedAppointment && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>Detalhes da consulta</DialogTitle>
+                  <DialogDescription>
+                    Informações completas sobre a consulta
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <Badge className={getStatusColor(selectedAppointment.status)}>
+                      {getStatusText(selectedAppointment.status)}
+                    </Badge>
+                    {selectedAppointment.price && (
+                      <span className="font-semibold">
+                        R$ {Number(selectedAppointment.price).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                    {selectedAppointment.patients.full_name}
+                  </div>
+                  {selectedAppointment.patients.phone && (
+                    <div className="ml-6 text-sm text-muted-foreground">
+                      {selectedAppointment.patients.phone}
+                    </div>
+                  )}
+                  <div className="flex items-center text-sm">
+                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                    {selectedAppointment.date} às {selectedAppointment.time} ({selectedAppointment.duration} min)
+                  </div>
+                  {selectedAppointment.treatment_type && (
+                    <div className="text-sm">
+                      <span className="font-medium">Tipo:</span> {selectedAppointment.treatment_type}
+                    </div>
+                  )}
+                  {selectedAppointment.notes && (
+                    <div className="text-sm">
+                      <span className="font-medium">Observações:</span> {selectedAppointment.notes}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
-};
-
-export default Appointments;
+}

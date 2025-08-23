@@ -1,349 +1,276 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Header } from '@/components/layout/Header';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useRequireClinic } from '@/hooks/useRequireClinic';
 
-interface Patient {
-  id: string;
-  profiles: {
-    full_name: string;
-  };
-}
-
-interface Dentist {
-  id: string;
-  profiles: {
-    full_name: string;
-  };
-}
-
-const AppointmentNew = () => {
+export default function AppointmentNew() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const preselectedPatient = searchParams.get('patient');
-  
-  const [loading, setLoading] = useState(false);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [dentists, setDentists] = useState<Dentist[]>([]);
-  const [formData, setFormData] = useState({
-    patient_id: preselectedPatient || '',
-    dentist_id: '',
-    title: '',
-    description: '',
-    appointment_date: '',
-    appointment_time: '',
-    duration_minutes: 60,
+  const clinicId = useRequireClinic();
+  const [patients, setPatients] = useState<any[]>([]);
+  const [filteredPatients, setFilteredPatients] = useState<any[]>([]);
+  const [patientSearch, setPatientSearch] = useState('');
+  const [form, setForm] = useState({
+    patient_id: '',
+    date: '',
+    time: '',
+    duration: '',
+    status: 'scheduled',
     treatment_type: '',
     price: '',
-    status: 'scheduled'
+    notes: ''
   });
 
   useEffect(() => {
-    fetchPatientsAndDentists();
-  }, []);
-
-  const fetchPatientsAndDentists = async () => {
-    try {
-      // Fetch patients
-      const { data: patientsData, error: patientsError } = await supabase
+    const fetchPatients = async () => {
+      const { data, error } = await supabase
         .from('patients')
-        .select(`
-          id,
-          profiles:profile_id (
-            full_name
-          )
-        `)
-        .order('profiles(full_name)');
+        .select('id, full_name')
+        .eq('clinic_id', clinicId);
 
-      if (patientsError) throw patientsError;
-      setPatients(patientsData || []);
-
-      // Fetch dentists
-      const { data: dentistsData, error: dentistsError } = await supabase
-        .from('dentists')
-        .select(`
-          id,
-          profiles:profile_id (
-            full_name
-          )
-        `)
-        .order('profiles(full_name)');
-
-      if (dentistsError) throw dentistsError;
-      setDentists(dentistsData || []);
-    } catch (error: any) {
-      toast.error('Erro ao carregar dados: ' + error.message);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      // Combine date and time
-      const appointmentDateTime = new Date(`${formData.appointment_date}T${formData.appointment_time}:00`).toISOString();
-
-      // Get clinic_id from auth context
-      const { data: userProfile } = await supabase
-        .from('clinic_members')
-        .select('clinic_id')
-        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!userProfile?.clinic_id) {
-        throw new Error('Usuário não está associado a uma clínica');
+      if (error) {
+        toast.error('Erro ao carregar pacientes');
+        return;
       }
+      setPatients(data || []);
+    };
 
-      const { error } = await supabase
-        .from('appointments')
-        .insert({
-          patient_id: formData.patient_id,
-          dentist_id: formData.dentist_id,
-          clinic_id: userProfile.clinic_id,
-          title: formData.title,
-          description: formData.description || null,
-          appointment_date: appointmentDateTime,
-          duration_minutes: formData.duration_minutes,
-          treatment_type: formData.treatment_type || null,
-          price: formData.price ? parseFloat(formData.price) : null,
-          status: formData.status as 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
-        });
+    if (clinicId) fetchPatients();
+  }, [clinicId]);
 
-      if (error) throw error;
-
-      toast.success('Consulta agendada com sucesso!');
-      navigate('/appointments');
-    } catch (error: any) {
-      toast.error('Erro ao agendar consulta: ' + error.message);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (patientSearch.trim() === '') {
+      setFilteredPatients([]);
+    } else {
+      setFilteredPatients(
+        patients.filter(p =>
+          p.full_name.toLowerCase().includes(patientSearch.toLowerCase())
+        )
+      );
     }
+  }, [patientSearch, patients]);
+
+  function formatDateToDB(date: string) {
+    const [day, month, year] = date.split('/');
+    return `${year}-${month}-${day}`;
+  }
+
+  function formatDateFromDB(date: string) {
+    const [year, month, day] = date.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
+  const handleChange = (e: any) => {
+    const { name, value } = e.target;
+
+    // Máscara de data
+    if (name === 'date') {
+      let v = value.replace(/\D/g, '');
+      if (v.length >= 3 && v.length <= 4) v = v.replace(/^(\d{2})(\d+)/, '$1/$2');
+      if (v.length > 4) v = v.replace(/^(\d{2})(\d{2})(\d+)/, '$1/$2/$3');
+      setForm(prev => ({ ...prev, [name]: v }));
+      return;
+    }
+
+    // Máscara de hora
+    if (name === 'time') {
+      let v = value.replace(/\D/g, '');
+      if (v.length >= 3) v = v.replace(/^(\d{2})(\d+)/, '$1:$2');
+      setForm(prev => ({ ...prev, [name]: v }));
+      return;
+    }
+
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    if (!clinicId) {
+      toast.error('Clínica não encontrada');
+      return;
+    }
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { error } = await supabase.from('appointments').insert([
+      {
+        clinic_id: clinicId,
+        patient_id: form.patient_id,
+        date: formatDateToDB(form.date),
+        time: form.time,
+        duration: parseInt(form.duration, 10),
+        status: form.status,
+        treatment_type: form.treatment_type,
+        price: parseFloat(form.price),
+        notes: form.notes
+      }
+    ]);
+
+    if (error) {
+      toast.error('Erro ao criar agendamento: ' + error.message);
+    } else {
+      toast.success('Agendamento criado com sucesso');
+      navigate('/appointments');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" onClick={() => navigate('/appointments')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Nova Consulta</h1>
-            <p className="text-muted-foreground">
-              Agende uma nova consulta para um paciente
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle>Novo Agendamento</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Paciente */}
+            <div>
+              <Label>
+                Paciente <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={patientSearch}
+                onChange={(e) => setPatientSearch(e.target.value)}
+                placeholder="Digite para buscar paciente"
+                required
+                title="Selecione um paciente"
+              />
+              {filteredPatients.length > 0 && (
+                <div className="border rounded mt-1 bg-white shadow max-h-40 overflow-y-auto">
+                  {filteredPatients.map((p) => (
+                    <div
+                      key={p.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        setForm((prev) => ({ ...prev, patient_id: p.id }));
+                        setPatientSearch(p.full_name);
+                        setFilteredPatients([]);
+                      }}
+                    >
+                      {p.full_name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-        {/* Form */}
-        <Card className="max-w-4xl">
-          <CardHeader>
-            <CardTitle>Dados da Consulta</CardTitle>
-            <CardDescription>
-              Preencha as informações da consulta para agendamento
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Patient and Dentist */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="patient_id">Paciente *</Label>
-                  <Select value={formData.patient_id} onValueChange={(value) => handleSelectChange('patient_id', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o paciente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patients.map((patient) => (
-                        <SelectItem key={patient.id} value={patient.id}>
-                          {patient.profiles.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dentist_id">Dentista *</Label>
-                  <Select value={formData.dentist_id} onValueChange={(value) => handleSelectChange('dentist_id', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o dentista" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dentists.map((dentist) => (
-                        <SelectItem key={dentist.id} value={dentist.id}>
-                          Dr. {dentist.profiles.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            {/* Data */}
+            <div>
+              <Label>
+                Data <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
+                required
+                title="Informe a data no formato dd/mm/aaaa"
+              />
+            </div>
 
-              {/* Title and Treatment Type */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Título da Consulta *</Label>
-                  <Input
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleChange}
-                    placeholder="Ex: Consulta de rotina"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="treatment_type">Tipo de Tratamento</Label>
-                  <Select value={formData.treatment_type} onValueChange={(value) => handleSelectChange('treatment_type', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="consulta">Consulta</SelectItem>
-                      <SelectItem value="limpeza">Limpeza</SelectItem>
-                      <SelectItem value="restauracao">Restauração</SelectItem>
-                      <SelectItem value="extracao">Extração</SelectItem>
-                      <SelectItem value="canal">Canal</SelectItem>
-                      <SelectItem value="protese">Prótese</SelectItem>
-                      <SelectItem value="ortodontia">Ortodontia</SelectItem>
-                      <SelectItem value="implante">Implante</SelectItem>
-                      <SelectItem value="outros">Outros</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            {/* Hora */}
+            <div>
+              <Label>
+                Hora <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                name="time"
+                value={form.time}
+                onChange={handleChange}
+                placeholder="hh:mm"
+                maxLength={5}
+                required
+                title="Informe a hora no formato hh:mm"
+              />
+            </div>
 
-              {/* Date and Time */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="appointment_date">Data *</Label>
-                  <Input
-                    id="appointment_date"
-                    name="appointment_date"
-                    type="date"
-                    value={formData.appointment_date}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="appointment_time">Horário *</Label>
-                  <Input
-                    id="appointment_time"
-                    name="appointment_time"
-                    type="time"
-                    value={formData.appointment_time}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="duration_minutes">Duração (min)</Label>
-                  <Select value={formData.duration_minutes.toString()} onValueChange={(value) => handleSelectChange('duration_minutes', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Duração" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="30">30 minutos</SelectItem>
-                      <SelectItem value="45">45 minutos</SelectItem>
-                      <SelectItem value="60">1 hora</SelectItem>
-                      <SelectItem value="90">1h 30min</SelectItem>
-                      <SelectItem value="120">2 horas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            {/* Duração */}
+            <div>
+              <Label>
+                Duração (min) <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                name="duration"
+                type="number"
+                value={form.duration}
+                onChange={handleChange}
+                required
+                title="Informe a duração em minutos"
+              />
+            </div>
 
-              {/* Price and Status */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Valor (R$)</Label>
-                  <Input
-                    id="price"
-                    name="price"
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={handleChange}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleSelectChange('status', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="scheduled">Agendada</SelectItem>
-                      <SelectItem value="completed">Concluída</SelectItem>
-                      <SelectItem value="cancelled">Cancelada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            {/* Status */}
+            <div>
+              <Label>
+                Status <span className="text-red-500">*</span>
+              </Label>
+              <select
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+                required
+                title="Selecione o status"
+              >
+                <option value="scheduled">Agendada</option>
+                <option value="confirmed">Confirmada</option>
+                <option value="completed">Concluída</option>
+                <option value="cancelled">Cancelada</option>
+                <option value="no_show">Falta</option>
+              </select>
+            </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Observações</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Observações sobre a consulta..."
-                />
-              </div>
+            {/* Tipo de tratamento */}
+            <div>
+              <Label>
+                Tipo de Tratamento <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                name="treatment_type"
+                value={form.treatment_type}
+                onChange={handleChange}
+                required
+                title="Informe o tipo de tratamento"
+              />
+            </div>
 
-              {/* Submit */}
-              <div className="flex justify-end space-x-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => navigate('/appointments')}
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? 'Agendando...' : 'Agendar Consulta'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Preço */}
+            <div>
+              <Label>
+                Preço <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                name="price"
+                type="number"
+                step="0.01"
+                value={form.price}
+                onChange={handleChange}
+                required
+                title="Informe o preço"
+              />
+            </div>
+
+            {/* Observações */}
+            <div>
+              <Label>Observações</Label>
+              <Textarea
+                name="notes"
+                value={form.notes}
+                onChange={handleChange}
+                placeholder="Anotações adicionais"
+              />
+            </div>
+
+            <Button type="submit" className="w-full">
+              Criar Agendamento
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default AppointmentNew;
+}
