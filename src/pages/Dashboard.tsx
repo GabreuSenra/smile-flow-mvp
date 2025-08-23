@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useRequireClinic } from '@/hooks/useRequireClinic';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,6 +53,7 @@ const dateTimeToDateObj = (dateStr: string, timeStr: string) => {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const clinicId = useRequireClinic(); // This will redirect to /setup-clinic if no clinic is found
   const [stats, setStats] = useState([
     { title: 'Pacientes Ativos', value: '0', change: '0', icon: Users, color: 'text-primary' },
     { title: 'Consultas Hoje', value: '0', change: '0', icon: Calendar, color: 'text-accent' },
