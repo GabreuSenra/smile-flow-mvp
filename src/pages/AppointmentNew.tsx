@@ -95,19 +95,17 @@ export default function AppointmentNew() {
       return;
     }
 
-    const { error } = await supabase.from('appointments').insert([
-      {
-        clinic_id: clinicId,
-        patient_id: form.patient_id,
-        date: formatDateToDB(form.date),
-        time: form.time,
-        duration: parseInt(form.duration, 10),
-        status: form.status,
-        treatment_type: form.treatment_type,
-        price: parseFloat(form.price),
-        notes: form.notes
-      }
-    ]);
+    const { error } = await supabase.from('appointments').insert({
+      clinic_id: clinicId,
+      patient_id: form.patient_id,
+      date: formatDateToDB(form.date),
+      time: form.time,
+      duration: parseInt(form.duration, 10),
+      status: form.status as "scheduled" | "confirmed" | "completed" | "cancelled" | "no_show",
+      treatment_type: form.treatment_type,
+      price: parseFloat(form.price),
+      notes: form.notes
+    });
 
     if (error) {
       toast.error('Erro ao criar agendamento: ' + error.message);

@@ -85,7 +85,8 @@ export default function EditAppointment() {
       .from("appointments")
       .update({
         ...appointment,
-        date: dateForDB
+        date: dateForDB,
+        status: appointment.status as "scheduled" | "confirmed" | "completed" | "cancelled" | "no_show"
       })
       .eq("id", id);
 

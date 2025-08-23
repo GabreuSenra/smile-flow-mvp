@@ -81,29 +81,45 @@ const PatientDetail = () => {
         .single();
 
       if (patientError) throw patientError;
-      setPatient(patientData);
+      setPatient({
+        ...patientData,
+        profile_id: patientData.id, // Map id to profile_id
+        date_of_birth: patientData.birth_date, // Map birth_date to date_of_birth
+        emergency_phone: patientData.emergency_contact || '', // Map emergency_contact to emergency_phone
+        profiles: {
+          full_name: patientData.full_name,
+          email: patientData.email || '',
+          phone: patientData.phone || ''
+        }
+      });
 
       // Fetch appointments
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
           id,
-          appointment_date,
-          title,
+          date,
+          time,
           status,
           treatment_type,
           price,
-          dentists:dentist_id (
-            profiles:profile_id (
-              full_name
-            )
-          )
+          notes,
+          duration
         `)
         .eq('patient_id', id)
-        .order('appointment_date', { ascending: false });
+        .order('date', { ascending: false });
 
       if (appointmentsError) throw appointmentsError;
-      setAppointments(appointmentsData || []);
+      setAppointments(appointmentsData?.map(appointment => ({
+        ...appointment,
+        appointment_date: appointment.date, // Map date to appointment_date
+        title: appointment.treatment_type || 'Consulta', // Map treatment_type to title
+        dentists: {
+          profiles: {
+            full_name: 'N/A' // Default dentist name
+          }
+        }
+      })) || []);
     } catch (error: any) {
       toast.error('Erro ao carregar dados do paciente: ' + error.message);
       navigate('/patients');

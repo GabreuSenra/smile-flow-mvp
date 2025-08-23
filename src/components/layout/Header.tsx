@@ -36,7 +36,12 @@ export const Header = () => {
       .limit(5);
 
     if (!error && data) {
-      setNotifications(data);
+      // Add missing 'read' property to notifications
+      const notificationsWithRead = data.map(notification => ({
+        ...notification,
+        read: false // Default to unread
+      }));
+      setNotifications(notificationsWithRead);
     }
   };
 
