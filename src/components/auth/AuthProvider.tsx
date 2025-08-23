@@ -33,9 +33,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     init();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // Check subscription status after login
+      if (event === 'SIGNED_IN' && session?.user) {
+        try {
+          await supabase.functions.invoke('check-subscription');
+        } catch (error) {
+          console.error('Error checking subscription after login:', error);
+        }
+      }
     });
 
     return () => {

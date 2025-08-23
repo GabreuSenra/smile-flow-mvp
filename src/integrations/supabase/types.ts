@@ -7,70 +7,110 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
-      appointments: {
+      appointment_requests: {
         Row: {
-          appointment_date: string
           clinic_id: string
-          created_at: string
-          dentist_id: string
-          description: string | null
-          duration_minutes: number | null
+          created_at: string | null
+          duration: number | null
           id: string
           notes: string | null
-          patient_id: string
-          price: number | null
-          status: Database["public"]["Enums"]["appointment_status"] | null
-          title: string
+          patient_name: string
+          patient_phone: string
+          preferred_date: string
+          preferred_time: string
+          status: string
           treatment_type: string | null
-          updated_at: string
         }
         Insert: {
-          appointment_date: string
           clinic_id: string
-          created_at?: string
-          dentist_id: string
-          description?: string | null
-          duration_minutes?: number | null
+          created_at?: string | null
+          duration?: number | null
           id?: string
           notes?: string | null
-          patient_id: string
-          price?: number | null
-          status?: Database["public"]["Enums"]["appointment_status"] | null
-          title: string
+          patient_name: string
+          patient_phone: string
+          preferred_date: string
+          preferred_time: string
+          status?: string
           treatment_type?: string | null
-          updated_at?: string
         }
         Update: {
-          appointment_date?: string
           clinic_id?: string
-          created_at?: string
-          dentist_id?: string
-          description?: string | null
-          duration_minutes?: number | null
+          created_at?: string | null
+          duration?: number | null
           id?: string
           notes?: string | null
-          patient_id?: string
-          price?: number | null
-          status?: Database["public"]["Enums"]["appointment_status"] | null
-          title?: string
+          patient_name?: string
+          patient_phone?: string
+          preferred_date?: string
+          preferred_time?: string
+          status?: string
           treatment_type?: string | null
-          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "appointments_clinic_id_fkey"
+            foreignKeyName: "appointment_requests_clinic_id_fkey"
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      appointments: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          date: string
+          dentist_id: string | null
+          duration: number | null
+          id: string
+          notes: string | null
+          patient_id: string
+          price: number | null
+          status: Database["public"]["Enums"]["appointment_status"] | null
+          time: string | null
+          treatment_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          date: string
+          dentist_id?: string | null
+          duration?: number | null
+          id?: string
+          notes?: string | null
+          patient_id: string
+          price?: number | null
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          time?: string | null
+          treatment_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          date?: string
+          dentist_id?: string | null
+          duration?: number | null
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          price?: number | null
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          time?: string | null
+          treatment_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
           {
             foreignKeyName: "appointments_dentist_id_fkey"
             columns: ["dentist_id"]
@@ -90,23 +130,23 @@ export type Database = {
       clinic_members: {
         Row: {
           clinic_id: string
+          created_at: string | null
           id: string
-          joined_at: string
-          role: Database["public"]["Enums"]["user_role"]
+          role: string | null
           user_id: string
         }
         Insert: {
           clinic_id: string
+          created_at?: string | null
           id?: string
-          joined_at?: string
-          role: Database["public"]["Enums"]["user_role"]
+          role?: string | null
           user_id: string
         }
         Update: {
           clinic_id?: string
+          created_at?: string | null
           id?: string
-          joined_at?: string
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: string | null
           user_id?: string
         }
         Relationships: [
@@ -117,72 +157,62 @@ export type Database = {
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "clinic_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       clinics: {
         Row: {
           address: string | null
-          created_at: string
+          created_at: string | null
           email: string | null
           id: string
           max_dentists: number | null
           max_patients: number | null
           name: string
+          owner_id: string
           phone: string | null
           stripe_customer_id: string | null
           subscription_active: boolean | null
           subscription_end_date: string | null
-          subscription_plan:
-            | Database["public"]["Enums"]["subscription_plan"]
-            | null
+          subscription_plan: string | null
           subscription_status: string | null
-          trial_end_date: string | null
-          updated_at: string
+          trial_ends_date: string | null
+          updated_at: string | null
         }
         Insert: {
           address?: string | null
-          created_at?: string
+          created_at?: string | null
           email?: string | null
           id?: string
           max_dentists?: number | null
           max_patients?: number | null
           name: string
+          owner_id: string
           phone?: string | null
           stripe_customer_id?: string | null
           subscription_active?: boolean | null
           subscription_end_date?: string | null
-          subscription_plan?:
-            | Database["public"]["Enums"]["subscription_plan"]
-            | null
+          subscription_plan?: string | null
           subscription_status?: string | null
-          trial_end_date?: string | null
-          updated_at?: string
+          trial_ends_date?: string | null
+          updated_at?: string | null
         }
         Update: {
           address?: string | null
-          created_at?: string
+          created_at?: string | null
           email?: string | null
           id?: string
           max_dentists?: number | null
           max_patients?: number | null
           name?: string
+          owner_id?: string
           phone?: string | null
           stripe_customer_id?: string | null
           subscription_active?: boolean | null
           subscription_end_date?: string | null
-          subscription_plan?:
-            | Database["public"]["Enums"]["subscription_plan"]
-            | null
+          subscription_plan?: string | null
           subscription_status?: string | null
-          trial_end_date?: string | null
-          updated_at?: string
+          trial_ends_date?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -218,13 +248,6 @@ export type Database = {
           work_hours?: Json | null
         }
         Relationships: [
-          {
-            foreignKeyName: "dentists_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "dentists_profile_id_fkey"
             columns: ["profile_id"]
@@ -286,24 +309,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "financial_transactions_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "financial_transactions_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financial_transactions_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -316,7 +325,7 @@ export type Database = {
           error_message: string | null
           id: string
           message: string
-          patient_id: string
+          patient_id: string | null
           scheduled_for: string
           sent_at: string | null
           status: string | null
@@ -329,7 +338,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           message: string
-          patient_id: string
+          patient_id?: string | null
           scheduled_for: string
           sent_at?: string | null
           status?: string | null
@@ -342,7 +351,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           message?: string
-          patient_id?: string
+          patient_id?: string | null
           scheduled_for?: string
           sent_at?: string | null
           status?: string | null
@@ -356,125 +365,53 @@ export type Database = {
             referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "notifications_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      patient_files: {
-        Row: {
-          clinic_id: string
-          created_at: string
-          description: string | null
-          file_name: string
-          file_size: number | null
-          file_type: string | null
-          file_url: string
-          id: string
-          patient_id: string
-          uploaded_by: string
-        }
-        Insert: {
-          clinic_id: string
-          created_at?: string
-          description?: string | null
-          file_name: string
-          file_size?: number | null
-          file_type?: string | null
-          file_url: string
-          id?: string
-          patient_id: string
-          uploaded_by: string
-        }
-        Update: {
-          clinic_id?: string
-          created_at?: string
-          description?: string | null
-          file_name?: string
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string
-          id?: string
-          patient_id?: string
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "patient_files_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "patient_files_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "patients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "patient_files_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       patients: {
         Row: {
           address: string | null
           allergies: string | null
+          birth_date: string | null
           clinic_id: string
           cpf: string | null
-          created_at: string
-          date_of_birth: string | null
+          created_at: string | null
+          email: string | null
           emergency_contact: string | null
-          emergency_phone: string | null
+          full_name: string
           id: string
           medical_conditions: string | null
-          profile_id: string
-          updated_at: string
+          phone: string | null
+          updated_at: string | null
         }
         Insert: {
           address?: string | null
           allergies?: string | null
+          birth_date?: string | null
           clinic_id: string
           cpf?: string | null
-          created_at?: string
-          date_of_birth?: string | null
+          created_at?: string | null
+          email?: string | null
           emergency_contact?: string | null
-          emergency_phone?: string | null
+          full_name: string
           id?: string
           medical_conditions?: string | null
-          profile_id: string
-          updated_at?: string
+          phone?: string | null
+          updated_at?: string | null
         }
         Update: {
           address?: string | null
           allergies?: string | null
+          birth_date?: string | null
           clinic_id?: string
           cpf?: string | null
-          created_at?: string
-          date_of_birth?: string | null
+          created_at?: string | null
+          email?: string | null
           emergency_contact?: string | null
-          emergency_phone?: string | null
+          full_name?: string
           id?: string
           medical_conditions?: string | null
-          profile_id?: string
-          updated_at?: string
+          phone?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -482,13 +419,6 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "patients_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -502,9 +432,10 @@ export type Database = {
           id: string
           is_active: boolean | null
           phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
+          plan_end_date: string | null
           updated_at: string
           user_id: string
+          user_role: Database["public"]["Enums"]["user_role"] | null
         }
         Insert: {
           avatar_url?: string | null
@@ -514,9 +445,10 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
+          plan_end_date?: string | null
           updated_at?: string
           user_id: string
+          user_role?: Database["public"]["Enums"]["user_role"] | null
         }
         Update: {
           avatar_url?: string | null
@@ -526,9 +458,46 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
+          plan_end_date?: string | null
           updated_at?: string
           user_id?: string
+          user_role?: Database["public"]["Enums"]["user_role"] | null
+        }
+        Relationships: []
+      }
+      subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          stripe_customer_id: string | null
+          subscribed: boolean
+          subscription_end: string | null
+          subscription_tier: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          stripe_customer_id?: string | null
+          subscribed?: boolean
+          subscription_end?: string | null
+          subscription_tier?: string | null
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -572,9 +541,80 @@ export type Database = {
           trial_end?: string | null
           updated_at?: string
         }
+        Relationships: []
+      }
+      treatment_types: {
+        Row: {
+          clinic_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          price?: number
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+        }
         Relationships: [
           {
-            foreignKeyName: "subscriptions_clinic_id_fkey"
+            foreignKeyName: "treatment_types_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_settings: {
+        Row: {
+          clinic_id: string
+          confirmation_message: string | null
+          created_at: string | null
+          enabled: boolean | null
+          id: string
+          phone_number: string | null
+          rejection_message: string | null
+          updated_at: string | null
+          welcome_message: string | null
+        }
+        Insert: {
+          clinic_id: string
+          confirmation_message?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          phone_number?: string | null
+          rejection_message?: string | null
+          updated_at?: string | null
+          welcome_message?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          confirmation_message?: string | null
+          created_at?: string | null
+          enabled?: boolean | null
+          id?: string
+          phone_number?: string | null
+          rejection_message?: string | null
+          updated_at?: string | null
+          welcome_message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_settings_clinic_id_fkey"
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
