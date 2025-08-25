@@ -25,6 +25,7 @@ const Plans = () => {
       name: 'Básico',
       price: 'R$ 49',
       period: '/mês',
+      priceId: 'price_basic_monthly', // Substitua pelo Price ID real do Stripe
       description: 'Ideal para clínicas pequenas',
       icon: Building2,
       features: [
@@ -41,6 +42,7 @@ const Plans = () => {
       name: 'Premium',
       price: 'R$ 99',
       period: '/mês',
+      priceId: 'price_premium_monthly', // Substitua pelo Price ID real do Stripe
       description: 'Perfeito para clínicas em crescimento',
       icon: Crown,
       features: [
@@ -60,6 +62,7 @@ const Plans = () => {
       name: 'Enterprise',
       price: 'R$ 150',
       period: '/mês',
+      priceId: 'price_enterprise_monthly', // Substitua pelo Price ID real do Stripe
       description: 'Para clínicas grandes e redes',
       icon: Zap,
       features: [
@@ -95,8 +98,11 @@ const Plans = () => {
   const handleSubscribe = async (planId: string) => {
     setLoading(true);
     try {
+      const plan = plans.find(p => p.id === planId);
+      if (!plan) throw new Error('Plano não encontrado');
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: planId }
+        body: { priceId: plan.priceId, planName: plan.name }
       });
 
       if (error) throw error;

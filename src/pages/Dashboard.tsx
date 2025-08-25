@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useRequireClinic } from '@/hooks/useRequireClinic';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +12,8 @@ import {
   TrendingUp,
   UserPlus,
   CalendarPlus,
-  FileText
+  FileText,
+  Crown
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +56,7 @@ const dateTimeToDateObj = (dateStr: string, timeStr: string) => {
 export default function Dashboard() {
   const { user } = useAuth();
   const clinicId = useRequireClinic(); // This will redirect to /setup-clinic if no clinic is found
+  const { subscribed, subscription_tier, subscription_end, loading: subscriptionLoading, openCustomerPortal } = useSubscription();
   const [stats, setStats] = useState([
     { title: 'Pacientes Ativos', value: '0', change: '0', icon: Users, color: 'text-primary' },
     { title: 'Consultas Hoje', value: '0', change: '0', icon: Calendar, color: 'text-accent' },
@@ -211,6 +214,51 @@ export default function Dashboard() {
           <h2 className="text-3xl font-bold mb-2">Bem-vindo de volta!</h2>
           <p className="text-muted-foreground">Aqui está um resumo das suas atividades de hoje.</p>
         </div>
+
+        {/* Subscription Status */}
+        {!subscriptionLoading && (
+          <Card className={subscribed ? "border-green-200 bg-green-50/50" : "border-orange-200 bg-orange-50/50"}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5" />
+                Status da Assinatura
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  {subscribed ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">Plano Ativo</p>
+                      <p className="font-semibold capitalize">{subscription_tier}</p>
+                      {subscription_end && (
+                        <p className="text-xs text-muted-foreground">
+                          Renova em: {new Date(subscription_end).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">Sem assinatura ativa</p>
+                      <p className="font-semibold">Período de teste</p>
+                    </>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {subscribed ? (
+                    <Button onClick={openCustomerPortal} variant="outline">
+                      Gerenciar Assinatura
+                    </Button>
+                  ) : (
+                    <Button onClick={() => window.location.href = '/plans'}>
+                      Ver Planos
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

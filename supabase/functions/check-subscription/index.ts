@@ -7,7 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper logging function for enhanced debugging
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
@@ -18,7 +17,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Use the service role key to perform writes (upsert) in Supabase
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -82,16 +80,15 @@ serve(async (req) => {
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
       
-      // Determine subscription tier from price
       const priceId = subscription.items.data[0].price.id;
       const price = await stripe.prices.retrieve(priceId);
       const amount = price.unit_amount || 0;
-      if (amount <= 999) {
-        subscriptionTier = "Basic";
-      } else if (amount <= 1999) {
-        subscriptionTier = "Premium";
+      if (amount <= 4999) {
+        subscriptionTier = "basic";
+      } else if (amount <= 9999) {
+        subscriptionTier = "premium";
       } else {
-        subscriptionTier = "Enterprise";
+        subscriptionTier = "enterprise";
       }
       logStep("Determined subscription tier", { priceId, amount, subscriptionTier });
     } else {
@@ -112,7 +109,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       subscription_tier: subscriptionTier,
-      subscription_end: subscriptionEnd
+      subscription_end: subscriptionEnd,
+      trial_active: false,
+      trial_end: null
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
