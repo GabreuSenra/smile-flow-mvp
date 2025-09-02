@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="cosmos">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Show Off • Theme Switcher</title>
+    <style>
+        /* ===== Base Reset & Layout ===== */
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            /* sem scrollagem */
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            color: var(--fg);
+            background: var(--bg);
+            transition: background 600ms ease, color 400ms ease;
+            /* transição suave entre temas */
+        }
+
+        :root {
+            --bg: #000;
+            /* fallback */
+            --fg: #e5e7eb;
+            --muted: #9aa0a6;
+            --accent: #7dd3fc;
+            --accent-2: #a78bfa;
+            --ring: color-mix(in oklab, var(--accent), white 15%);
+        }
+
+        /* ===== THEME TOKENS (via data-theme no <html>) ===== */
+        html[data-theme="cosmos"] {
+            --bg: #030712;
+            /* quase preto */
+            --fg: #e5e7eb;
+            --muted: #9aa0a6;
+            --accent: #60a5fa;
+            /* azul-estelar */
+            --accent-2: #22d3ee;
+            /* ciano */
+            --ring: #1f6feb;
+        }
+
+        html[data-theme="light"] {
+            --bg: #ffffff;
+            --fg: #0f172a;
+            /* slate-950 */
+            --muted: #475569;
+            /* slate-600 */
+            --accent: #0ea5e9;
+            --accent-2: #14b8a6;
+            --ring: #38bdf8;
+        }
+
+        html[data-theme="vintage"] {
+            --bg: #f2e9d0;
+            /* papel */
+            --fg: #3f2f1d;
+            /* marrom escuro */
+            --muted: #6b4f2a;
+            --accent: #b5651d;
+            /* cobre */
+            --accent-2: #8b5e34;
+            --ring: #d4a373;
+        }
+
+        html[data-theme="cyber"] {
+            /* neon cyberpunk */
+            --bg: radial-gradient(120vmax 120vmax at 10% 10%, #1a0033, #05010a 60%),
+                radial-gradient(80vmax 80vmax at 90% 90%, #001a33, transparent 60%);
+            --fg: #f8fafc;
+            --muted: #cbd5e1;
+            --accent: #ff00e5;
+            /* magenta neon */
+            --accent-2: #00ffe5;
+            /* ciano neon */
+            --ring: #7c3aed;
+        }
+
+        html[data-theme="aurora"] {
+            --bg: conic-gradient(from 180deg at 50% 50%, #07111a, #0b1f29, #0a2a22 25%, #081624 50%, #0c1b2a 75%, #07111a);
+            --fg: #e6f6ff;
+            --muted: #b9e3ff;
+            --accent: #7de2ff;
+            --accent-2: #a0ffcf;
+            --ring: #22d3ee;
+        }
+
+        /* ===== Decorative backdrops for some themes ===== */
+        /* Aurora shimmer */
+        html[data-theme="aurora"] body::before {
+            content: "";
+            position: fixed;
+            inset: -10% -10% -10% -10%;
+            background: radial-gradient(60vmax 30vmax at 30% 70%, #2bdcff22 0%, transparent 60%),
+                radial-gradient(50vmax 20vmax at 70% 30%, #a0ffcf22 0%, transparent 60%),
+                radial-gradient(30vmax 15vmax at 50% 50%, #7de2ff1c 0%, transparent 60%);
+            filter: blur(30px);
+            pointer-events: none;
+            animation: drift 18s ease-in-out infinite alternate;
+        }
+
+        @keyframes drift {
+            0% {
+                transform: translate3d(-2%, -2%, 0) scale(1);
+            }
+
+            100% {
+                transform: translate3d(2%, 2%, 0) scale(1.03);
+            }
+        }
+
+        /* Cyber subtle scanlines */
+        html[data-theme="cyber"] body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(to bottom, #ffffff08 0px, #ffffff08 1px, transparent 2px);
+            mix-blend-mode: overlay;
+            pointer-events: none;
+            animation: flicker 4s linear infinite;
+        }
+
+        @keyframes flicker {
+
+            0%,
+            100% {
+                opacity: .7
+            }
+
+            50% {
+                opacity: 1
+            }
+        }
+
+        /* Vintage grain & vignette */
+        html[data-theme="vintage"] body::before {
+            content: "";
+            position: fixed;
+            inset: -20%;
+            pointer-events: none;
+            background:
+                radial-gradient(80vmax 60vmax at 50% 50%, transparent 40%, #00000022 100%),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="table" tableValues="0 0.2"/></feComponentTransfer></filter><rect width="100%" height="100%" filter="url(%23n)"/></svg>');
+            opacity: .6;
+            mix-blend-mode: multiply;
+        }
+
+        /* ===== Starfield Canvas (somente no tema cosmos) ===== */
+        #starfield {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            display: block;
+            background: radial-gradient(120vmax 120vmax at 50% 60%, #0b1229 0%, #030712 60%);
+            opacity: 1;
+            transition: opacity 500ms ease;
+        }
+
+        html:not([data-theme="cosmos"]) #starfield {
+            opacity: 0;
+        }
+
+        /* ===== Content ===== */
+        .wrap {
+            position: relative;
+            height: 100svh;
+            width: 100vw;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .hero {
+            max-width: 900px;
+        }
+
+        .title {
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            font-size: clamp(2.4rem, 7vw, 5.2rem);
+            margin: 0 0 1rem 0;
+            text-shadow: 0 2px 12px color-mix(in oklab, var(--accent), black 70%);
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 2.2vw, 1.25rem);
+            color: var(--muted);
+            margin: 0 auto 2.5rem;
+            max-width: 70ch;
+        }
+
+        /* ===== Theme Badge ===== */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            border: 1px solid color-mix(in oklab, var(--ring), transparent 60%);
+            padding: .5rem .85rem;
+            border-radius: 999px;
+            font-size: .9rem;
+            letter-spacing: .02em;
+            background: color-mix(in oklab, var(--bg), var(--ring) 6%);
+            box-shadow: 0 4px 18px color-mix(in oklab, var(--ring), transparent 80%);
+            backdrop-filter: blur(6px);
+        }
+
+        .dot {
+            width: .6rem;
+            height: .6rem;
+            border-radius: 999px;
+            background: var(--accent);
+            box-shadow: 0 0 18px var(--accent);
+        }
+
+        /* ===== Theme Switch Button ===== */
+        .switcher {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            transform: translateX(-50%);
+            display: inline-flex;
+            align-items: center;
+            gap: .75rem;
+            background: color-mix(in oklab, var(--bg), var(--ring) 7%);
+            color: var(--fg);
+            border: 1px solid color-mix(in oklab, var(--ring), transparent 65%);
+            padding: .9rem 1.15rem;
+            border-radius: 999px;
+            box-shadow: 0 8px 28px color-mix(in oklab, var(--ring), transparent 82%);
+            cursor: pointer;
+            user-select: none;
+            transition: transform .08s ease, background .35s ease, border-color .35s ease;
+            will-change: transform;
+        }
+
+        .switcher:active {
+            transform: translateX(-50%) scale(.98);
+        }
+
+        .switcher span {
+            font-weight: 600;
+            letter-spacing: .02em;
+        }
+
+        .kbd {
+            font: inherit;
+            border-radius: .5rem;
+            padding: .15rem .4rem;
+            border: 1px solid color-mix(in oklab, var(--ring), transparent 50%);
+            opacity: .8
+        }
+
+        /* ===== Per-theme flourish ===== */
+        html[data-theme="cyber"] .title {
+            text-shadow: 0 0 24px var(--accent), 0 0 48px var(--accent-2);
+        }
+
+        html[data-theme="light"] .title {
+            text-shadow: none;
+        }
+
+        html[data-theme="vintage"] .title {
+            text-shadow: 0 2px 0 #ffffff66;
+        }
+
+        /* Accessibility focus ring */
+        .switcher:focus-visible {
+            outline: 3px solid var(--ring);
+            outline-offset: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="starfield" aria-hidden="true"></canvas>
+    <main class="wrap" role="main">
+        <section class="hero" aria-live="polite">
+            <div class="badge" id="theme-badge">
+                <span class="dot" aria-hidden="true"></span>
+                <strong id="theme-name">Cosmos (Dark)</strong>
+            </div>
+            <h1 class="title">Viajando por Temas</h1>
+            <p class="subtitle">
+                Uma página minimalista feita só para <em>mostrar</em> mudanças de tema. Sem rolagem, sem distrações —
+                apenas um cenário elegante e um botão para saltar entre universos visuais.
+            </p>
+        </section>
+    </main>
+
+    <button class="switcher" id="switcher" aria-label="Mudar tema (atalho: T)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+                d="M12 3v3m0 12v3m9-9h-3M6 12H3m13.95 5.657-2.121-2.121M8.172 8.172 6.05 6.05m11.9 0-2.121 2.121M8.172 15.828 6.05 17.95"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+        <span>Trocar tema</span>
+        <kbd class="kbd">T</kbd>
+    </button>
+
+    <script>
+        // ===== Theme definitions & helpers =====
+        const themes = [
+            { id: 'cosmos', label: 'Cosmos (Dark)' },
+            { id: 'light', label: 'Light' },
+            { id: 'vintage', label: 'Vintage' },
+            { id: 'cyber', label: 'Cyber' },
+            { id: 'aurora', label: 'Aurora' },
+        ];
+
+        const htmlEl = document.documentElement;
+        const switcher = document.getElementById('switcher');
+        const badgeName = document.getElementById('theme-name');
+
+        function getThemeIndex() {
+            const current = htmlEl.getAttribute('data-theme');
+            return Math.max(0, themes.findIndex(t => t.id === current));
+        }
+
+        function setThemeByIndex(idx) {
+            const t = themes[(idx + themes.length) % themes.length];
+            htmlEl.setAttribute('data-theme', t.id);
+            badgeName.textContent = t.label;
+            localStorage.setItem('showoff-theme', t.id);
+            // starfield.setRunning será chamado após a inicialização do starfield (ver abaixo)
+            if (window.__starfield) {
+                window.__starfield.setRunning(t.id === 'cosmos');
+            }
+        }
+
+        // ===== Starfield (depth warp) =====
+        // (IIFE executa imediatamente; expomos em window para uso posterior)
+        (function createStarfield() {
+            const canvas = document.getElementById('starfield');
+            const ctx = canvas.getContext('2d');
+            let w = 0, h = 0, cx = 0, cy = 0, raf = null, running = true;
+            let stars = [];
+            const STAR_COUNT = 900; // denso o suficiente para profundidade
+            const SPEED = 0.035;    // velocidade base
+
+            function resize() {
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                w = canvas.width = Math.floor(window.innerWidth * dpr);
+                h = canvas.height = Math.floor(window.innerHeight * dpr);
+                canvas.style.width = window.innerWidth + 'px';
+                canvas.style.height = window.innerHeight + 'px';
+                cx = w / 2; cy = h / 2;
+            }
+
+            function initStars() {
+                stars = [];
+                for (let i = 0; i < STAR_COUNT; i++) {
+                    stars.push({
+                        x: (Math.random() * 2 - 1) * w,
+                        y: (Math.random() * 2 - 1) * h,
+                        z: Math.random() * w,
+                    });
+                }
+            }
+
+            function step() {
+                if (!running) return;
+                ctx.clearRect(0, 0, w, h);
+                const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h));
+                grd.addColorStop(0, '#0b1229');
+                grd.addColorStop(1, '#030712');
+                ctx.fillStyle = grd;
+                ctx.fillRect(0, 0, w, h);
+
+                ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < STAR_COUNT; i++) {
+                    const s = stars[i];
+                    s.z -= SPEED * w;
+                    if (s.z <= 1) {
+                        s.x = (Math.random() * 2 - 1) * w;
+                        s.y = (Math.random() * 2 - 1) * h;
+                        s.z = w;
+                    }
+                    const k = 128 / s.z;
+                    const px = s.x * k + cx;
+                    const py = s.y * k + cy;
+                    if (px < 0 || px >= w || py < 0 || py >= h) continue;
+                    const size = (1 - s.z / w) * 2.2 + 0.2;
+                    const twinkle = (i % 3 === 0) ? '#a5f3fc' : (i % 5 === 0) ? '#93c5fd' : '#ffffff';
+                    ctx.globalAlpha = 0.7 + Math.random() * 0.3;
+                    ctx.fillStyle = twinkle;
+                    ctx.beginPath();
+                    ctx.arc(px, py, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+                raf = requestAnimationFrame(step);
+            }
+
+            function setRunning(v) {
+                if (v && !running) { running = true; raf = requestAnimationFrame(step); }
+                else if (!v && running) { running = false; if (raf) cancelAnimationFrame(raf); }
+            }
+
+            window.addEventListener('resize', () => { resize(); initStars(); });
+            resize(); initStars(); step();
+
+            // expõe controladores para o tema
+            window.__starfield = { setRunning };
+        })();
+
+        // ===== Eventos de UI =====
+        switcher.addEventListener('click', () => setThemeByIndex(getThemeIndex() + 1));
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 't') { e.preventDefault(); setThemeByIndex(getThemeIndex() + 1); }
+        });
+
+        // ===== Persistência entre visitas =====
+        (function initTheme() {
+            const saved = localStorage.getItem('showoff-theme');
+            if (saved && themes.some(t => t.id === saved)) {
+                const idx = themes.findIndex(t => t.id === saved);
+                setThemeByIndex(idx);
+            } else {
+                setThemeByIndex(0);
+            }
+        })();
+
+        // ===== Testes rápidos (não intrusivos) =====
+        (function devTests() {
+            try {
+                console.assert(window.__starfield && typeof window.__starfield.setRunning === 'function', 'Starfield API disponível');
+                const before = getThemeIndex();
+                setThemeByIndex(before + 1);
+                const expected = (before + 1) % themes.length;
+                console.assert(getThemeIndex() === expected, 'Troca de tema cicla corretamente');
+                // Reverte
+                setThemeByIndex(before);
+                console.info('✅ Testes básicos passaram');
+            } catch (e) {
+                console.error('❌ Testes falharam', e);
+            }
+        })();
+    </script>
+</body>
+
+</html>
