@@ -23,28 +23,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        setUser(data.session?.user ?? null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // 1) Listener primeiro, apenas atualizações síncronas
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
-      
-      // Check subscription status after login
+
+      // Evitar deadlocks: adiar chamadas ao Supabase
       if (event === 'SIGNED_IN' && session?.user) {
-        try {
-          await supabase.functions.invoke('check-subscription');
-        } catch (error) {
-          console.error('Error checking subscription after login:', error);
-        }
+        setTimeout(() => {
+          supabase.functions
+            .invoke('check-subscription')
+            .catch((error) => {
+              console.error('Error checking subscription after login:', error);
+            });
+        }, 0);
       }
+    });
+
+    // 2) Depois verificar sessão existente
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+      setLoading(false);
     });
 
     return () => {
