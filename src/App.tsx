@@ -22,6 +22,7 @@ import EditAppointment from "./pages/EditAppointment";
 import WhatsAppSettingsPage from "./pages/WhatsAppSettings";
 import Settings from "./pages/Settings";
 import TreatmentTypes from "./pages/TreatmentTypes";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 const queryClient = new QueryClient();
 
@@ -136,6 +137,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <TreatmentTypes/>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment-success"
+              element={
+                <ProtectedRoute>
+                  <PaymentSuccess />
                 </ProtectedRoute>
               }
             />

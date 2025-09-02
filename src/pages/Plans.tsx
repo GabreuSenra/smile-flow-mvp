@@ -25,7 +25,7 @@ const Plans = () => {
       name: 'Básico',
       price: 'R$ 49',
       period: '/mês',
-      paymentLink: 'https://buy.stripe.com/test_00g00000000000000000001', // Substitua pelo seu payment link real
+      paymentLink: 'https://buy.stripe.com/test_5kQ8wQ8SB8qHa94fGBbwk00', // URL do payment link do Stripe
       description: 'Ideal para clínicas pequenas',
       icon: Building2,
       features: [
@@ -42,7 +42,7 @@ const Plans = () => {
       name: 'Premium',
       price: 'R$ 99',
       period: '/mês',
-      paymentLink: 'https://buy.stripe.com/test_00g00000000000000000002', // Substitua pelo seu payment link real
+      paymentLink: 'https://buy.stripe.com/test_00g00000000000000000002', // URL do payment link do Stripe - SUBSTITUA
       description: 'Perfeito para clínicas em crescimento',
       icon: Crown,
       features: [
@@ -62,7 +62,7 @@ const Plans = () => {
       name: 'Enterprise',
       price: 'R$ 150',
       period: '/mês',
-      paymentLink: 'https://buy.stripe.com/test_00g00000000000000000003', // Substitua pelo seu payment link real
+      paymentLink: 'https://buy.stripe.com/test_00g00000000000000000003', // URL do payment link do Stripe - SUBSTITUA
       description: 'Para clínicas grandes e redes',
       icon: Zap,
       features: [
