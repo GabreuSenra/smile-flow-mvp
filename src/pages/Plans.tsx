@@ -25,7 +25,7 @@ const Plans = () => {
       name: 'Básico',
       price: 'R$ 49',
       period: '/mês',
-      priceId: 'price_basic_monthly', // Substitua pelo Price ID real do Stripe
+      paymentLink: 'https://buy.stripe.com/test_00g00000000000000000001', // Substitua pelo seu payment link real
       description: 'Ideal para clínicas pequenas',
       icon: Building2,
       features: [
@@ -42,7 +42,7 @@ const Plans = () => {
       name: 'Premium',
       price: 'R$ 99',
       period: '/mês',
-      priceId: 'price_premium_monthly', // Substitua pelo Price ID real do Stripe
+      paymentLink: 'https://buy.stripe.com/test_00g00000000000000000002', // Substitua pelo seu payment link real
       description: 'Perfeito para clínicas em crescimento',
       icon: Crown,
       features: [
@@ -62,7 +62,7 @@ const Plans = () => {
       name: 'Enterprise',
       price: 'R$ 150',
       period: '/mês',
-      priceId: 'price_enterprise_monthly', // Substitua pelo Price ID real do Stripe
+      paymentLink: 'https://buy.stripe.com/test_00g00000000000000000003', // Substitua pelo seu payment link real
       description: 'Para clínicas grandes e redes',
       icon: Zap,
       features: [
@@ -95,25 +95,15 @@ const Plans = () => {
     }
   };
 
-  const handleSubscribe = async (planId: string) => {
-    setLoading(true);
-    try {
-      const plan = plans.find(p => p.id === planId);
-      if (!plan) throw new Error('Plano não encontrado');
-
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId: plan.priceId, planName: plan.name }
-      });
-
-      if (error) throw error;
-
-      // Open Stripe checkout in a new tab
-      window.open(data.url, '_blank');
-    } catch (error: any) {
-      toast.error('Erro ao criar checkout: ' + error.message);
-    } finally {
-      setLoading(false);
+  const handleSubscribe = (planId: string) => {
+    const plan = plans.find(p => p.id === planId);
+    if (!plan) {
+      toast.error('Plano não encontrado');
+      return;
     }
+
+    // Redireciona diretamente para o payment link do Stripe
+    window.open(plan.paymentLink, '_blank');
   };
 
   const handleManageSubscription = async () => {
