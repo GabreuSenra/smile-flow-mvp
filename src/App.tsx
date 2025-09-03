@@ -119,6 +119,14 @@ const App = () => (
               }
             />
             <Route
+              path="/patients/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <PatientDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/whats-settings"
               element={
                 <ProtectedRoute>

@@ -1,401 +1,344 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Header } from '@/components/layout/Header';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Edit, 
-  Mail, 
-  Phone, 
-  MapPin,
-  User,
-  AlertCircle,
-  Stethoscope
-} from 'lucide-react';
+// PatientDetail.tsx
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-interface Patient {
+export interface Patient {
   id: string;
-  profile_id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
   cpf: string | null;
+  birth_date: string | null; // preferível YYYY-MM-DD
   address: string | null;
-  date_of_birth: string | null;
   emergency_contact: string | null;
-  emergency_phone: string | null;
   allergies: string | null;
   medical_conditions: string | null;
-  created_at: string;
-  profiles: {
-    full_name: string;
-    email: string;
-    phone: string | null;
-  };
+  clinic_id?: string | null;
+  created_at?: string | null;
 }
 
-interface Appointment {
-  id: string;
-  appointment_date: string;
-  title: string;
-  status: string;
-  treatment_type: string | null;
-  price: number | null;
-  dentists: {
-    profiles: {
-      full_name: string;
-    };
-  };
+/**
+ * Converte várias formas de data pra formato YYYY-MM-DD aceitável pelo <input type="date" />
+ */
+function toInputDate(date?: string | null) {
+  if (!date) return '';
+  // ISO timestamp -> keep date part
+  if (date.includes('T')) return date.split('T')[0];
+  // já no formato yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+  // dd/mm/yyyy -> converter
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
+    const [d, m, y] = date.split('/');
+    return `${y}-${m}-${d}`;
+  }
+  // fallback
+  return date;
 }
 
-const PatientDetail = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
+/**
+ * Form reutilizável. Pode receber `patient` (objeto) ou `patientId` (string)
+ * onSaved é chamado quando o registro é salvo com sucesso (útil para fechar dialog / recarregar lista)
+ */
+export function PatientForm({
+  patient,
+  patientId,
+  onSaved,
+  onCancel,
+}: {
+  patient?: Patient | null;
+  patientId?: string | null;
+  onSaved?: () => void;
+  onCancel?: () => void;
+}) {
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    cpf: '',
+    birth_date: '',
+    address: '',
+    emergency_contact: '',
+    allergies: '',
+    medical_conditions: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
+  // debug rápido — abra o console e veja esses valores ao abrir o form
   useEffect(() => {
-    if (id) {
-      fetchPatientData();
-    }
-  }, [id]);
+    console.debug('PatientForm mounted — props:', { patient, patientId });
+  }, [patient, patientId]);
 
-  const fetchPatientData = async () => {
+  // Se receber um `patient` já carregado (por exemplo vindo do array da list), preenche o form imediatamente.
+  useEffect(() => {
+    if (patient) {
+      setForm({
+        full_name: patient.full_name || '',
+        email: patient.email || '',
+        phone: patient.phone || '',
+        cpf: patient.cpf || '',
+        birth_date: toInputDate(patient.birth_date),
+        address: patient.address || '',
+        emergency_contact: patient.emergency_contact || '',
+        allergies: patient.allergies || '',
+        medical_conditions: patient.medical_conditions || '',
+      });
+      return;
+    }
+    // caso não tenha patient, se houver patientId, buscar do DB
+    if (patientId) {
+      fetchPatient(patientId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient, patientId]);
+
+  async function fetchPatient(id: string) {
+    setLoading(true);
+    console.debug('Fetching patient by id:', id);
     try {
-      // Fetch patient data
-      const { data: patientData, error: patientError } = await supabase
+      const { data, error } = await supabase
         .from('patients')
-        .select(`
-          *,
-          profiles:profile_id (
-            full_name,
-            email,
-            phone
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
-      if (patientError) throw patientError;
-      setPatient({
-        ...patientData,
-        profile_id: patientData.id, // Map id to profile_id
-        date_of_birth: patientData.birth_date, // Map birth_date to date_of_birth
-        emergency_phone: patientData.emergency_contact || '', // Map emergency_contact to emergency_phone
-        profiles: {
-          full_name: patientData.full_name,
-          email: patientData.email || '',
-          phone: patientData.phone || ''
-        }
+      if (error) {
+        console.error('Supabase error fetching patient:', error);
+        toast.error('Erro ao carregar paciente');
+        return;
+      }
+
+      if (!data) {
+        console.warn('Nenhum paciente retornado do banco para id', id);
+        toast.error('Paciente não encontrado');
+        return;
+      }
+
+      setForm({
+        full_name: data.full_name || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        cpf: data.cpf || '',
+        birth_date: toInputDate(data.birth_date),
+        address: data.address || '',
+        emergency_contact: data.emergency_contact || '',
+        allergies: data.allergies || '',
+        medical_conditions: data.medical_conditions || '',
       });
-
-      // Fetch appointments
-      const { data: appointmentsData, error: appointmentsError } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          date,
-          time,
-          status,
-          treatment_type,
-          price,
-          notes,
-          duration
-        `)
-        .eq('patient_id', id)
-        .order('date', { ascending: false });
-
-      if (appointmentsError) throw appointmentsError;
-      setAppointments(appointmentsData?.map(appointment => ({
-        ...appointment,
-        appointment_date: appointment.date, // Map date to appointment_date
-        title: appointment.treatment_type || 'Consulta', // Map treatment_type to title
-        dentists: {
-          profiles: {
-            full_name: 'N/A' // Default dentist name
-          }
-        }
-      })) || []);
-    } catch (error: any) {
-      toast.error('Erro ao carregar dados do paciente: ' + error.message);
-      navigate('/patients');
+      console.debug('Patient fetched:', data);
+    } catch (err: any) {
+      console.error('Erro inesperado ao buscar paciente:', err);
+      toast.error(err?.message || 'Erro ao carregar paciente');
     } finally {
       setLoading(false);
     }
-  };
-
-  const calculateAge = (birthDate: string | null) => {
-    if (!birthDate) return null;
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'bg-blue-500';
-      case 'completed': return 'bg-green-500';
-      case 'cancelled': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'Agendada';
-      case 'completed': return 'Concluída';
-      case 'cancelled': return 'Cancelada';
-      default: return status;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="p-6">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-secondary rounded w-1/3"></div>
-            <div className="h-64 bg-secondary rounded"></div>
-            <div className="h-48 bg-secondary rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
   }
 
-  if (!patient) {
+  const handleChange = (field: string, value: any) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  async function handleSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  const targetId = patient?.id || patientId;
+  if (!targetId) {
+    toast.error('ID do paciente ausente — impossível salvar');
+    return;
+  }
+
+  setSaving(true);
+  try {
+    const payload = {
+      full_name: form.full_name || null,
+      email: form.email || null,
+      phone: form.phone || null,
+      cpf: form.cpf || null,
+      birth_date: form.birth_date || null, // já em YYYY-MM-DD
+      address: form.address || null,
+      emergency_contact: form.emergency_contact || null,
+      allergies: form.allergies || null,
+      medical_conditions: form.medical_conditions || null,
+    };
+
+    console.debug("Tentando atualizar paciente:", { id: targetId, payload });
+
+    const { data, error } = await supabase
+      .from("patients")
+      .update(payload)
+      .eq("id", targetId)
+      .select(); // força retorno do registro atualizado
+
+    if (error) {
+      console.error("Erro Supabase update:", error);
+      toast.error("Erro ao atualizar paciente");
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("Nenhum registro atualizado. Verifique RLS ou se o ID está correto.");
+      toast.error("Paciente não foi atualizado.");
+      return;
+    }
+
+    console.debug("Paciente atualizado com sucesso:", data);
+    toast.success("Paciente atualizado com sucesso!");
+    onSaved?.();
+  } catch (err: any) {
+    console.error("Erro inesperado ao salvar paciente:", err);
+    toast.error(err?.message || "Erro ao salvar paciente");
+  } finally {
+    setSaving(false);
+  }
+}
+
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label>Nome completo</Label>
+        <Input
+          name="full_name"
+          value={form.full_name}
+          onChange={(e) => handleChange('full_name', e.target.value)}
+          required
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <Label>Email</Label>
+        <Input
+          type="email"
+          name="email"
+          value={form.email}
+          onChange={(e) => handleChange('email', e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <Label>Telefone</Label>
+        <Input
+          name="phone"
+          value={form.phone}
+          onChange={(e) => handleChange('phone', e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <Label>CPF</Label>
+        <Input
+          name="cpf"
+          value={form.cpf}
+          onChange={(e) => handleChange('cpf', e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <Label>Data de nascimento</Label>
+        <Input
+          type="date"
+          name="birth_date"
+          value={form.birth_date}
+          onChange={(e) => handleChange('birth_date', e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <Label>Endereço</Label>
+        <Input
+          name="address"
+          value={form.address}
+          onChange={(e) => handleChange('address', e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <Label>Contato de Emergência</Label>
+        <Input
+          name="emergency_contact"
+          value={form.emergency_contact}
+          onChange={(e) => handleChange('emergency_contact', e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <Label>Alergias</Label>
+        <Textarea
+          name="allergies"
+          value={form.allergies}
+          onChange={(e) => handleChange('allergies', e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <div>
+        <Label>Condições médicas</Label>
+        <Textarea
+          name="medical_conditions"
+          value={form.medical_conditions}
+          onChange={(e) => handleChange('medical_conditions', e.target.value)}
+          disabled={loading}
+        />
+      </div>
+
+      <div className="flex justify-end space-x-2">
+        <Button variant="outline" type="button" onClick={onCancel} disabled={loading}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={loading}>
+          {loading ? 'Salvando...' : 'Salvar Paciente'}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+/**
+ * Página /patients/:id — usa PatientForm passando patientId.
+ * Também exportamos PatientForm acima pra uso dentro do Dialog do Patients.tsx.
+ */
+export default function PatientDetailPage() {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+
+  // simples UX: se não tiver id, mostra mensagem curta
+  if (!id) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="p-6 text-center">
-          <p>Paciente não encontrado.</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="w-full max-w-2xl">
+          <CardHeader>
+            <CardTitle>Editar Paciente</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">ID do paciente ausente na rota.</p>
+            <div className="flex justify-end mt-4">
+              <Button onClick={() => navigate('/patients')}>Voltar</Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="outline" size="sm" onClick={() => navigate('/patients')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">{patient.profiles.full_name}</h1>
-              <p className="text-muted-foreground">Detalhes do paciente</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Link to={`/appointments/new?patient=${patient.id}`}>
-              <Button>
-                <Calendar className="h-4 w-4 mr-2" />
-                Nova Consulta
-              </Button>
-            </Link>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Patient Info */}
-          <div className="lg:col-span-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <User className="h-5 w-5 mr-2" />
-                  Informações Pessoais
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
-                    <span className="text-primary-foreground font-medium text-xl">
-                      {patient.profiles.full_name.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{patient.profiles.full_name}</h3>
-                    {patient.date_of_birth && (
-                      <Badge variant="secondary">
-                        {calculateAge(patient.date_of_birth)} anos
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-3">
-                  {patient.profiles.email && (
-                    <div className="flex items-center text-sm">
-                      <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {patient.profiles.email}
-                    </div>
-                  )}
-                  {patient.profiles.phone && (
-                    <div className="flex items-center text-sm">
-                      <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {patient.profiles.phone}
-                    </div>
-                  )}
-                  {patient.cpf && (
-                    <div className="flex items-center text-sm">
-                      <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                      CPF: {patient.cpf}
-                    </div>
-                  )}
-                  {patient.address && (
-                    <div className="flex items-start text-sm">
-                      <MapPin className="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
-                      <span>{patient.address}</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Emergency Contact */}
-            {(patient.emergency_contact || patient.emergency_phone) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <AlertCircle className="h-5 w-5 mr-2" />
-                    Contato de Emergência
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {patient.emergency_contact && (
-                    <p className="text-sm">{patient.emergency_contact}</p>
-                  )}
-                  {patient.emergency_phone && (
-                    <div className="flex items-center text-sm">
-                      <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {patient.emergency_phone}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Medical Info */}
-            {(patient.allergies || patient.medical_conditions) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Stethoscope className="h-5 w-5 mr-2" />
-                    Informações Médicas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {patient.allergies && (
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Alergias</h4>
-                      <p className="text-sm text-muted-foreground">{patient.allergies}</p>
-                    </div>
-                  )}
-                  {patient.medical_conditions && (
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Condições Médicas</h4>
-                      <p className="text-sm text-muted-foreground">{patient.medical_conditions}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Appointments History */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Histórico de Consultas</CardTitle>
-                <CardDescription>
-                  Consultas realizadas e agendadas
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {appointments.length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-muted-foreground">Nenhuma consulta encontrada.</p>
-                    <Link to={`/appointments/new?patient=${patient.id}`}>
-                      <Button className="mt-4">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Agendar Primeira Consulta
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {appointments.map((appointment) => (
-                      <div
-                        key={appointment.id}
-                        className="flex items-center justify-between p-4 rounded-lg border"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className={`w-3 h-3 rounded-full ${getStatusColor(appointment.status)}`}></div>
-                          <div>
-                            <h4 className="font-medium">{appointment.title}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(appointment.appointment_date).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                            {appointment.treatment_type && (
-                              <p className="text-sm text-muted-foreground">
-                                {appointment.treatment_type}
-                              </p>
-                            )}
-                            {appointment.dentists?.profiles && (
-                              <p className="text-sm text-muted-foreground">
-                                Dr. {appointment.dentists.profiles.full_name}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="outline">
-                            {getStatusText(appointment.status)}
-                          </Badge>
-                          {appointment.price && (
-                            <p className="text-sm font-medium mt-1">
-                              R$ {appointment.price.toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-2xl">
+        <CardHeader>
+          <CardTitle>Editar Paciente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PatientForm
+            patientId={id}
+            onSaved={() => navigate('/patients')}
+            onCancel={() => navigate('/patients')}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default PatientDetail;
+}

@@ -16,7 +16,7 @@ const navigation = [
   { name: 'Consultas', href: '/appointments', icon: CalendarPlus },
   { name: 'Calendário', href: '/calendar', icon: Calendar },
   { name: 'Relatórios', href: '/reports', icon: FileText },
-  //{ name: 'Configurações', href: '/settings', icon: Settings }, 
+  { name: 'Configurações', href: '/settings', icon: Settings }, 
   { name: 'Planos', href: '/plans', icon: CreditCard },
 ];
 

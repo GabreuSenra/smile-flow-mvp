@@ -41,7 +41,6 @@ export default function PatientNew() {
     fetchClinicId();
   }, [navigate]);
 
-  // 2️⃣ Cadastrar paciente
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);

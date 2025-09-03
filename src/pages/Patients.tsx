@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { UserPlus, Search, Eye, Calendar, Phone, Mail } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { UserPlus, Search, Eye, Calendar, Phone, Mail, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -28,47 +29,46 @@ const Patients = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   useEffect(() => {
     fetchPatients();
   }, []);
 
   const fetchPatients = async () => {
-  try {
-    // 🔹 1. Obter sessão do usuário
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      toast.error('Sessão inválida, faça login novamente.');
-      return;
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        toast.error('Sessão inválida, faça login novamente.');
+        return;
+      }
+
+      const { data: membership, error: memberError } = await supabase
+        .from('clinic_members')
+        .select('clinic_id')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (memberError || !membership) {
+        toast.error('Não foi possível encontrar a clínica associada a este usuário.');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('clinic_id', membership.clinic_id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPatients(data || []);
+    } catch (error: any) {
+      toast.error('Erro ao carregar pacientes: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-
-    // 🔹 2. Obter clinic_id do usuário
-    const { data: membership, error: memberError } = await supabase
-      .from('clinic_members')
-      .select('clinic_id')
-      .eq('user_id', session.user.id)
-      .single();
-
-    if (memberError || !membership) {
-      toast.error('Não foi possível encontrar a clínica associada a este usuário.');
-      return;
-    }
-
-    // 🔹 3. Buscar apenas pacientes dessa clínica
-    const { data, error } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('clinic_id', membership.clinic_id)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    setPatients(data || []);
-  } catch (error: any) {
-    toast.error('Erro ao carregar pacientes: ' + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const filteredPatients = patients.filter(patient =>
     patient.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -205,12 +205,17 @@ const Patients = () => {
                           Agendar
                         </Button>
                       </Link>
-                      <Link to={`/patients/${patient.id}`}>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalhes
-                        </Button>
-                      </Link>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPatient(patient);
+                          setDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -219,6 +224,92 @@ const Patients = () => {
           )}
         </div>
       </div>
+
+      {/* Dialog de detalhes */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          {selectedPatient && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Detalhes do paciente</DialogTitle>
+                <DialogDescription>
+                  Informações completas sobre {selectedPatient.full_name}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-3">
+                {/* Nome */}
+                <h2 className="text-lg font-semibold">{selectedPatient.full_name}</h2>
+
+                {/* Badges */}
+                <div className="flex flex-wrap gap-2">
+                  {selectedPatient.birth_date && (
+                    <Badge variant="secondary">
+                      {calculateAge(selectedPatient.birth_date)} anos
+                    </Badge>
+                  )}
+                  {selectedPatient.cpf && (
+                    <Badge variant="outline">
+                      CPF: {selectedPatient.cpf}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Email */}
+                {selectedPatient.email && (
+                  <div className="flex items-center text-sm">
+                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                    {selectedPatient.email}
+                  </div>
+                )}
+
+                {/* Telefone */}
+                {selectedPatient.phone && (
+                  <div className="flex items-center text-sm">
+                    <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                    {selectedPatient.phone}
+                  </div>
+                )}
+
+                {/* Endereço */}
+                {selectedPatient.address && (
+                  <div className="text-sm">
+                    <span className="font-medium">Endereço:</span> {selectedPatient.address}
+                  </div>
+                )}
+
+                {/* Contato de emergência */}
+                {selectedPatient.emergency_contact && (
+                  <div className="text-sm">
+                    <span className="font-medium">Contato de emergência:</span> {selectedPatient.emergency_contact}
+                  </div>
+                )}
+
+                {/* Alergias */}
+                {selectedPatient.allergies && (
+                  <div className="text-sm">
+                    <span className="font-medium">Alergias:</span> {selectedPatient.allergies}
+                  </div>
+                )}
+
+                {/* Condições médicas */}
+                {selectedPatient.medical_conditions && (
+                  <div className="text-sm">
+                    <span className="font-medium">Condições médicas:</span> {selectedPatient.medical_conditions}
+                  </div>
+                )}
+              </div>
+              <Link to={`/patients/${selectedPatient.id}/edit`}>
+                <Button size="sm">
+                  <Edit className="h-4 w-4 mr-1" />
+                  Editar
+                </Button>
+              </Link>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };
