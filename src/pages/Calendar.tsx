@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CalendarPlus, User, Clock } from 'lucide-react';
+import { CalendarPlus, User, Clock, Ban, Plus } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface Appointment {
   id: string;
@@ -29,6 +30,7 @@ interface Appointment {
 }
 
 const Calendar = () => {
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -110,6 +112,12 @@ const Calendar = () => {
     setDialogOpen(true);
   };
 
+  const handleDateClick = (info: any) => {
+    // Navegar para nova consulta com data pré-selecionada
+    const dateStr = info.dateStr;
+    navigate(`/appointments/new?date=${dateStr}`);
+  };
+
   const formatDateTime = (date: string, time: string) => {
     const dateObj = new Date(`${date}T${time}`);
     return {
@@ -156,6 +164,8 @@ const Calendar = () => {
               }}
               events={calendarEvents}
               eventClick={handleEventClick}
+              dateClick={handleDateClick}
+              selectable={true}
               height="auto"
               locale="pt-br"
               buttonText={{

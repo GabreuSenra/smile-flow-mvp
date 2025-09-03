@@ -23,6 +23,7 @@ import WhatsAppSettingsPage from "./pages/WhatsAppSettings";
 import Settings from "./pages/Settings";
 import TreatmentTypes from "./pages/TreatmentTypes";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import BookAppointment from "./pages/BookAppointment";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/agendar-consulta/:id" element={<BookAppointment />} />
             <Route
               path="/dashboard"
               element={
