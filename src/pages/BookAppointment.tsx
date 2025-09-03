@@ -55,9 +55,14 @@ const BookAppointment = () => {
   useEffect(() => {
     if (code) {
       fetchClinicByCode();
-      fetchTreatments();
     }
   }, [code]);
+
+  useEffect(() => {
+    if (clinicId) {
+      fetchTreatments();
+    }
+  }, [clinicId]);
 
   useEffect(() => {
     if (selectedDate && code) {
@@ -69,15 +74,23 @@ const BookAppointment = () => {
     const { data, error } = await supabase
       .from("clinics")
       .select("id, name")
-      .eq("public_code", code)
-      .single();
+      .eq('public_code', code)
+      .single(); 
 
-    if (!error && data) {
-      setClinicId(data.id);
-      setClinicName(data.name);
-    } else {
-      toast.error("Clínica não encontrada");
+    if (error) {
+      toast.error("Erro ao buscar clínica: " + error.message);
+      return;
     }
+
+    if (!data) {
+      toast.error("Clínica não encontrada" + error.message);
+      return;
+    }
+
+    console.log('Dados retornados:', data)
+
+    setClinicName(data.name);
+    setClinicId(data.id);
   };
 
   const fetchTreatments = async () => {
@@ -85,9 +98,8 @@ const BookAppointment = () => {
       .from("treatment_types")
       .select("*")
       .eq("clinic_id", clinicId);
-
     if (error) {
-      toast.error("Erro ao carregar tratamentos");
+      toast.error("Erro ao carregar tratamentos" + error.message);
     } else {
       setTreatments(data || []);
     }
