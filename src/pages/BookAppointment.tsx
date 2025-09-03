@@ -87,8 +87,6 @@ const BookAppointment = () => {
       return;
     }
 
-    console.log('Dados retornados:', data)
-
     setClinicName(data.name);
     setClinicId(data.id);
   };
