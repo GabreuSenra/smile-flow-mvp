@@ -93,6 +93,35 @@ const BookAppointment = () => {
     if (!selectedDate) return;
 
     const dateStr = selectedDate.toISOString().split('T')[0];
+    const dayOfWeek = selectedDate.getDay();
+    
+    // Buscar configurações de bloqueio da clínica
+    const { data: settings } = await supabase
+      .from("clinic_settings")
+      .select("setting_value")
+      .eq("clinic_id", clinicId)
+      .eq("setting_key", "schedule_blocks")
+      .single();
+
+    let blockedDays: number[] = [0, 6]; // Sunday and Saturday by default
+    let blockedTimeRanges: { start: string; end: string }[] = [
+      { start: '00:00', end: '08:00' },
+      { start: '18:00', end: '23:59' }
+    ];
+
+    if (settings?.setting_value) {
+      const parsedSettings = settings.setting_value as any;
+      if (parsedSettings && typeof parsedSettings === 'object') {
+        blockedDays = parsedSettings.blockedDays || blockedDays;
+        blockedTimeRanges = parsedSettings.blockedTimeRanges || blockedTimeRanges;
+      }
+    }
+
+    // Verificar se o dia está bloqueado
+    if (blockedDays.includes(dayOfWeek)) {
+      setAvailableSlots([]);
+      return;
+    }
     
     // Buscar consultas já agendadas para o dia
     const { data: appointments } = await supabase
@@ -105,7 +134,7 @@ const BookAppointment = () => {
     const slots = generateTimeSlots();
     const occupiedTimes = new Set();
 
-    // Marcar horários ocupados
+    // Marcar horários ocupados por consultas existentes
     appointments?.forEach(apt => {
       const startTime = apt.time;
       const duration = apt.duration || 60;
@@ -120,6 +149,23 @@ const BookAppointment = () => {
         const slotTime = `${slotHour.toString().padStart(2, '0')}:${slotMin.toString().padStart(2, '0')}`;
         occupiedTimes.add(slotTime);
       }
+    });
+
+    // Marcar horários bloqueados pelas configurações
+    blockedTimeRanges.forEach(range => {
+      const [startHour, startMinute] = range.start.split(':').map(Number);
+      const [endHour, endMinute] = range.end.split(':').map(Number);
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+
+      slots.forEach(slot => {
+        const [slotHour, slotMinute] = slot.time.split(':').map(Number);
+        const slotMinutes = slotHour * 60 + slotMinute;
+        
+        if (slotMinutes >= startMinutes && slotMinutes <= endMinutes) {
+          occupiedTimes.add(slot.time);
+        }
+      });
     });
 
     // Atualizar disponibilidade

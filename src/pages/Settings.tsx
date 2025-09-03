@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WhatsappSettings from "@/pages/WhatsAppSettings";
 import TreatmentTypes from "@/pages/TreatmentTypes";
+import { ClinicScheduleSettings } from "@/components/ClinicScheduleSettings";
 
 export default function Settings() {
   const [tab, setTab] = useState("whatsapp");
@@ -25,6 +26,7 @@ export default function Settings() {
               <TabsList>
                 <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
                 <TabsTrigger value="treatments">Tipos de Consulta</TabsTrigger>
+                <TabsTrigger value="schedule">Horários</TabsTrigger>
               </TabsList>
 
               <TabsContent value="whatsapp">
@@ -33,6 +35,10 @@ export default function Settings() {
 
               <TabsContent value="treatments">
                 <TreatmentTypes />
+              </TabsContent>
+
+              <TabsContent value="schedule">
+                <ClinicScheduleSettings />
               </TabsContent>
             </Tabs>
           </CardContent>

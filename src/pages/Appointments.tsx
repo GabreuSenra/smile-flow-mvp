@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Edit, Eye, Calendar as CalendarIcon, User, Clock, Stethoscope } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AppointmentRequestsCard } from '@/components/AppointmentRequestsCard';
 
 interface Appointment {
   id: string;
@@ -123,63 +125,76 @@ export default function Appointments() {
           </Link>
         </div>
 
-        {appointments.length === 0 ? (
-          <p className="text-muted-foreground">Nenhuma consulta cadastrada.</p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {appointments.map((appointment) => (
-              <Card key={appointment.id} className="shadow-sm hover:shadow-md transition">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg">
-                      {appointment.patients?.full_name || 'Paciente não informado'}
-                    </CardTitle>
-                    <Badge className={getStatusColor(appointment.status)}>
-                      {getStatusText(appointment.status)}
-                    </Badge>
-                  </div>
-                  <CardDescription>
-                    {appointment.treatment_type || 'Tratamento não especificado'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    { formatDate(appointment.date)}
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4 mr-2" />
-                    {formatTime(appointment.time)} ({appointment.duration} min)
-                  </div>
-                  {appointment.price && (
-                    <div className="text-sm font-semibold">
-                      R$ {Number(appointment.price).toFixed(2)}
-                    </div>
-                  )}
-                  <div className="flex justify-end space-x-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedAppointment(appointment);
-                        setDialogOpen(true);
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver Detalhes
-                    </Button>
-                    <Link to={`/appointments/${appointment.id}/edit`}>
-                      <Button size="sm">
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        <Tabs defaultValue="appointments" className="w-full">
+          <TabsList>
+            <TabsTrigger value="appointments">Consultas Agendadas</TabsTrigger>
+            <TabsTrigger value="requests">Solicitações Pendentes</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="appointments" className="space-y-4">
+            {appointments.length === 0 ? (
+              <p className="text-muted-foreground">Nenhuma consulta cadastrada.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {appointments.map((appointment) => (
+                  <Card key={appointment.id} className="shadow-sm hover:shadow-md transition">
+                    <CardHeader>
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-lg">
+                          {appointment.patients?.full_name || 'Paciente não informado'}
+                        </CardTitle>
+                        <Badge className={getStatusColor(appointment.status)}>
+                          {getStatusText(appointment.status)}
+                        </Badge>
+                      </div>
+                      <CardDescription>
+                        {appointment.treatment_type || 'Tratamento não especificado'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <CalendarIcon className="h-4 w-4 mr-2" />
+                        { formatDate(appointment.date)}
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4 mr-2" />
+                        {formatTime(appointment.time)} ({appointment.duration} min)
+                      </div>
+                      {appointment.price && (
+                        <div className="text-sm font-semibold">
+                          R$ {Number(appointment.price).toFixed(2)}
+                        </div>
+                      )}
+                      <div className="flex justify-end space-x-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAppointment(appointment);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          Ver Detalhes
+                        </Button>
+                        <Link to={`/appointments/${appointment.id}/edit`}>
+                          <Button size="sm">
+                            <Edit className="h-4 w-4 mr-1" />
+                            Editar
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="requests">
+            <AppointmentRequestsCard />
+          </TabsContent>
+        </Tabs>
 
         {/* Dialog de detalhes */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
