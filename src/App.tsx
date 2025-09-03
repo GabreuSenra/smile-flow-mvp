@@ -37,7 +37,11 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/agendar-consulta/:id" element={<BookAppointment />} />
+            <Route 
+              path="/agendar-consulta/:code" 
+              element={
+                <BookAppointment />} 
+                />
             <Route
               path="/dashboard"
               element={

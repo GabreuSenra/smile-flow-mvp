@@ -23,8 +23,8 @@ interface AvailableSlot {
 }
 
 const BookAppointment = () => {
-  const { id: clinicId } = useParams<{ id: string }>();
-  
+  const { code } = useParams<{ code: string }>();
+
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -38,6 +38,7 @@ const BookAppointment = () => {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [clinicName, setClinicName] = useState("");
+  const [clinicId, setClinicId] = useState<string | null>(null);
 
   // Horários disponíveis padrão (8h às 18h, intervalos de 30min)
   const generateTimeSlots = () => {
@@ -52,27 +53,30 @@ const BookAppointment = () => {
   };
 
   useEffect(() => {
-    if (clinicId) {
+    if (code) {
+      fetchClinicByCode();
       fetchTreatments();
-      fetchClinicInfo();
     }
-  }, [clinicId]);
+  }, [code]);
 
   useEffect(() => {
-    if (selectedDate && clinicId) {
+    if (selectedDate && code) {
       checkAvailability();
     }
-  }, [selectedDate, clinicId]);
+  }, [selectedDate, code]);
 
-  const fetchClinicInfo = async () => {
+  const fetchClinicByCode = async () => {
     const { data, error } = await supabase
       .from("clinics")
-      .select("name")
-      .eq("id", clinicId)
+      .select("id, name")
+      .eq("public_code", code)
       .single();
 
     if (!error && data) {
+      setClinicId(data.id);
       setClinicName(data.name);
+    } else {
+      toast.error("Clínica não encontrada");
     }
   };
 
@@ -94,7 +98,7 @@ const BookAppointment = () => {
 
     const dateStr = selectedDate.toISOString().split('T')[0];
     const dayOfWeek = selectedDate.getDay();
-    
+
     // Buscar configurações de bloqueio da clínica
     const { data: settings } = await supabase
       .from("clinic_settings")
@@ -122,7 +126,7 @@ const BookAppointment = () => {
       setAvailableSlots([]);
       return;
     }
-    
+
     // Buscar consultas já agendadas para o dia
     const { data: appointments } = await supabase
       .from("appointments")
@@ -140,7 +144,7 @@ const BookAppointment = () => {
       const duration = apt.duration || 60;
       const [startHour, startMinute] = startTime.split(':').map(Number);
       const startMinutes = startHour * 60 + startMinute;
-      
+
       // Marcar todos os slots que se sobrepõem
       for (let i = 0; i < duration; i += 30) {
         const slotMinutes = startMinutes + i;
@@ -161,7 +165,7 @@ const BookAppointment = () => {
       slots.forEach(slot => {
         const [slotHour, slotMinute] = slot.time.split(':').map(Number);
         const slotMinutes = slotHour * 60 + slotMinute;
-        
+
         if (slotMinutes >= startMinutes && slotMinutes <= endMinutes) {
           occupiedTimes.add(slot.time);
         }
@@ -179,7 +183,7 @@ const BookAppointment = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clinicId || !selectedDate || !selectedTime) {
+    if (!code || !selectedDate || !selectedTime) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -218,7 +222,7 @@ const BookAppointment = () => {
           <CardHeader className="text-center">
             <CardTitle className="text-green-600">Solicitação Enviada!</CardTitle>
             <CardDescription>
-              Sua solicitação de consulta foi enviada com sucesso. 
+              Sua solicitação de consulta foi enviada com sucesso.
               A clínica entrará em contato para confirmar o agendamento.
             </CardDescription>
           </CardHeader>
@@ -351,9 +355,9 @@ const BookAppointment = () => {
                   </div>
                 )}
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={loading || !selectedDate || !selectedTime}
                 >
                   {loading ? "Enviando..." : "Solicitar Agendamento"}
