@@ -59,14 +59,13 @@ export default function DentistNew() {
       const cro_number = formData.get('cro_number') as string;
       const specialization = formData.get('specialization') as string;
 
-      // Primeiro, criar o perfil
+      // Primeiro, criar o perfil do dentista
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
+        .from('dentist_profiles')
         .insert([{
           full_name,
           email,
-          phone,
-          user_role: 'dentist'
+          phone
         }])
         .select()
         .single();
@@ -78,7 +77,7 @@ export default function DentistNew() {
         .from('dentists')
         .insert([{
           clinic_id: clinicId,
-          profile_id: profileData.id,
+          dentist_profile_id: profileData.id,
           cro_number,
           specialization: specialization || null,
           work_hours: {

@@ -246,13 +246,40 @@ export type Database = {
         }
         Relationships: []
       }
+      dentist_profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dentists: {
         Row: {
           clinic_id: string
           created_at: string
           cro_number: string
+          dentist_profile_id: string | null
           id: string
-          profile_id: string
           specialization: string | null
           updated_at: string
           work_hours: Json | null
@@ -261,8 +288,8 @@ export type Database = {
           clinic_id: string
           created_at?: string
           cro_number: string
+          dentist_profile_id?: string | null
           id?: string
-          profile_id: string
           specialization?: string | null
           updated_at?: string
           work_hours?: Json | null
@@ -271,18 +298,18 @@ export type Database = {
           clinic_id?: string
           created_at?: string
           cro_number?: string
+          dentist_profile_id?: string | null
           id?: string
-          profile_id?: string
           specialization?: string | null
           updated_at?: string
           work_hours?: Json | null
         }
         Relationships: [
           {
-            foreignKeyName: "dentists_profile_id_fkey"
-            columns: ["profile_id"]
+            foreignKeyName: "dentists_dentist_profile_id_fkey"
+            columns: ["dentist_profile_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "dentist_profiles"
             referencedColumns: ["id"]
           },
         ]

@@ -16,9 +16,9 @@ interface Dentist {
   specialization: string | null;
   work_hours: any;
   clinic_id: string;
-  profile_id: string;
+  dentist_profile_id: string;
   created_at: string;
-  profiles?: {
+  dentist_profiles?: {
     full_name: string;
     email: string;
     phone: string | null;
@@ -59,7 +59,7 @@ const Dentists = () => {
         .from('dentists')
         .select(`
           *,
-          profiles:profile_id (
+          dentist_profiles:dentist_profile_id (
             full_name,
             email,
             phone
@@ -78,7 +78,7 @@ const Dentists = () => {
   };
 
   const filteredDentists = dentists.filter(dentist =>
-    dentist.profiles?.full_name.toLowerCase().includes(search.toLowerCase()) ||
+    dentist.dentist_profiles?.full_name.toLowerCase().includes(search.toLowerCase()) ||
     dentist.cro_number.toLowerCase().includes(search.toLowerCase()) ||
     (dentist.specialization && dentist.specialization.toLowerCase().includes(search.toLowerCase()))
   );
@@ -161,16 +161,16 @@ const Dentists = () => {
                         <Stethoscope className="h-6 w-6 text-primary-foreground" />
                       </div>
                       <div className="space-y-1">
-                        <h3 className="font-semibold text-lg">{dentist.profiles?.full_name}</h3>
+                        <h3 className="font-semibold text-lg">{dentist.dentist_profiles?.full_name}</h3>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          {dentist.profiles?.email && (
+                          {dentist.dentist_profiles?.email && (
                             <div className="flex items-center">
-                              {dentist.profiles.email}
+                              {dentist.dentist_profiles.email}
                             </div>
                           )}
-                          {dentist.profiles?.phone && (
+                          {dentist.dentist_profiles?.phone && (
                             <div className="flex items-center">
-                              {dentist.profiles.phone}
+                              {dentist.dentist_profiles.phone}
                             </div>
                           )}
                         </div>
@@ -222,13 +222,13 @@ const Dentists = () => {
               <DialogHeader>
                 <DialogTitle>Detalhes do dentista</DialogTitle>
                 <DialogDescription>
-                  Informações completas sobre {selectedDentist.profiles?.full_name}
+                  Informações completas sobre {selectedDentist.dentist_profiles?.full_name}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-3">
                 {/* Nome */}
-                <h2 className="text-lg font-semibold">{selectedDentist.profiles?.full_name}</h2>
+                <h2 className="text-lg font-semibold">{selectedDentist.dentist_profiles?.full_name}</h2>
 
                 {/* Badges */}
                 <div className="flex flex-wrap gap-2">
@@ -243,16 +243,16 @@ const Dentists = () => {
                 </div>
 
                 {/* Email */}
-                {selectedDentist.profiles?.email && (
+                {selectedDentist.dentist_profiles?.email && (
                   <div className="text-sm">
-                    <span className="font-medium">Email:</span> {selectedDentist.profiles.email}
+                    <span className="font-medium">Email:</span> {selectedDentist.dentist_profiles.email}
                   </div>
                 )}
 
                 {/* Telefone */}
-                {selectedDentist.profiles?.phone && (
+                {selectedDentist.dentist_profiles?.phone && (
                   <div className="text-sm">
-                    <span className="font-medium">Telefone:</span> {selectedDentist.profiles.phone}
+                    <span className="font-medium">Telefone:</span> {selectedDentist.dentist_profiles.phone}
                   </div>
                 )}
 

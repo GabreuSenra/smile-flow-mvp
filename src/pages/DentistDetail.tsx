@@ -13,8 +13,8 @@ export interface Dentist {
   specialization: string | null;
   work_hours: any;
   clinic_id: string;
-  profile_id: string;
-  profiles?: {
+  dentist_profile_id: string;
+  dentist_profiles?: {
     id: string;
     full_name: string;
     email: string;
@@ -46,9 +46,9 @@ export function DentistForm({
   useEffect(() => {
     if (dentist) {
       setForm({
-        full_name: dentist.profiles?.full_name || '',
-        email: dentist.profiles?.email || '',
-        phone: dentist.profiles?.phone || '',
+        full_name: dentist.dentist_profiles?.full_name || '',
+        email: dentist.dentist_profiles?.email || '',
+        phone: dentist.dentist_profiles?.phone || '',
         cro_number: dentist.cro_number || '',
         specialization: dentist.specialization || '',
       });
@@ -66,7 +66,7 @@ export function DentistForm({
         .from('dentists')
         .select(`
           *,
-          profiles:profile_id (
+          dentist_profiles:dentist_profile_id (
             id,
             full_name,
             email,
@@ -88,9 +88,9 @@ export function DentistForm({
       }
 
       setForm({
-        full_name: data.profiles?.full_name || '',
-        email: data.profiles?.email || '',
-        phone: data.profiles?.phone || '',
+        full_name: data.dentist_profiles?.full_name || '',
+        email: data.dentist_profiles?.email || '',
+        phone: data.dentist_profiles?.phone || '',
         cro_number: data.cro_number || '',
         specialization: data.specialization || '',
       });
@@ -109,7 +109,7 @@ export function DentistForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const targetId = dentist?.id || dentistId;
-    const profileId = dentist?.profiles?.id || dentist?.profile_id;
+    const profileId = dentist?.dentist_profiles?.id || dentist?.dentist_profile_id;
     
     if (!targetId || !profileId) {
       toast.error('ID do dentista ausente — impossível salvar');
@@ -126,7 +126,7 @@ export function DentistForm({
       };
 
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from('dentist_profiles')
         .update(profilePayload)
         .eq('id', profileId);
 
