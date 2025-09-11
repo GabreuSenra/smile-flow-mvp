@@ -73,9 +73,9 @@ const BookAppointment = () => {
   const fetchClinicByCode = async () => {
     const { data, error } = await supabase
       .from("clinics")
-      .select("id, name")
+      .select("id, name, public_code")
       .eq('public_code', code)
-      .single(); 
+      .maybeSingle();
 
     if (error) {
       toast.error("Erro ao buscar clínica: " + error.message);

@@ -197,6 +197,7 @@ export type Database = {
           name: string
           owner_id: string
           phone: string | null
+          public_code: string | null
           stripe_customer_id: string | null
           subscription_active: boolean | null
           subscription_end_date: string | null
@@ -215,6 +216,7 @@ export type Database = {
           name: string
           owner_id: string
           phone?: string | null
+          public_code?: string | null
           stripe_customer_id?: string | null
           subscription_active?: boolean | null
           subscription_end_date?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           name?: string
           owner_id?: string
           phone?: string | null
+          public_code?: string | null
           stripe_customer_id?: string | null
           subscription_active?: boolean | null
           subscription_end_date?: string | null

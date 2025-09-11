@@ -115,7 +115,7 @@ const WhatsappSettings = () => {
       return;
     }
 
-    if (data) {
+    if (data && data.public_code) {
       setPublicCode(data.public_code);
     }
   };

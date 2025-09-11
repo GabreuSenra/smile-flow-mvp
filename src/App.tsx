@@ -14,6 +14,9 @@ import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
 import PatientDetail from "./pages/PatientDetail";
 import PatientsNew from "./pages/PatientNew";
+import Dentists from "./pages/Dentists";
+import DentistNew from "./pages/DentistNew";
+import DentistDetail from "./pages/DentistDetail";
 import Reports from "./pages/Reports";
 import Plans from "./pages/Plans";
 import SetupClinic from "./pages/SetupClinic";
@@ -127,6 +130,30 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PatientDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dentists"
+              element={
+                <ProtectedRoute>
+                  <Dentists />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dentists/new"
+              element={
+                <ProtectedRoute>
+                  <DentistNew />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dentists/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <DentistDetail />
                 </ProtectedRoute>
               }
             />

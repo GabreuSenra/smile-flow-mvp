@@ -28,7 +28,7 @@ export default function SetupClinic() {
       code = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
       const { data } = await supabase
         .from("clinics")
-        .select("id")
+        .select("id, public_code")
         .eq("public_code", code)
         .maybeSingle();
 

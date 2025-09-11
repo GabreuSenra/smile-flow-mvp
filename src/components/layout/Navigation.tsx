@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Pacientes', href: '/patients', icon: Users },
+  { name: 'Dentistas', href: '/dentists', icon: Users },
   { name: 'Consultas', href: '/appointments', icon: CalendarPlus },
   { name: 'Calendário', href: '/calendar', icon: Calendar },
   { name: 'Relatórios', href: '/reports', icon: FileText },
