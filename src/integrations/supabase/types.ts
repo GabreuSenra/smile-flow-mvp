@@ -24,6 +24,7 @@ export type Database = {
           patient_name: string
           patient_phone: string
           preferred_date: string
+          preferred_dentist_id: string | null
           preferred_time: string
           status: string
           treatment_type: string | null
@@ -37,6 +38,7 @@ export type Database = {
           patient_name: string
           patient_phone: string
           preferred_date: string
+          preferred_dentist_id?: string | null
           preferred_time: string
           status?: string
           treatment_type?: string | null
@@ -50,6 +52,7 @@ export type Database = {
           patient_name?: string
           patient_phone?: string
           preferred_date?: string
+          preferred_dentist_id?: string | null
           preferred_time?: string
           status?: string
           treatment_type?: string | null
