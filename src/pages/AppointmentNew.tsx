@@ -15,8 +15,10 @@ export default function AppointmentNew() {
   const [patients, setPatients] = useState<any[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<any[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
+  const [dentists, setDentists] = useState<any[]>([]);
   const [form, setForm] = useState({
     patient_id: '',
+    dentist_id: '',
     date: '',
     time: '',
     duration: '',
@@ -27,20 +29,36 @@ export default function AppointmentNew() {
   });
 
   useEffect(() => {
-    const fetchPatients = async () => {
-      const { data, error } = await supabase
-        .from('patients')
-        .select('id, full_name')
-        .eq('clinic_id', clinicId);
+    const fetchData = async () => {
+      const [patientsResult, dentistsResult] = await Promise.all([
+        supabase
+          .from('patients')
+          .select('id, full_name')
+          .eq('clinic_id', clinicId),
+        supabase
+          .from('dentists')
+          .select(`
+            id,
+            work_hours,
+            dentist_profiles!inner(full_name)
+          `)
+          .eq('clinic_id', clinicId)
+      ]);
 
-      if (error) {
+      if (patientsResult.error) {
         toast.error('Erro ao carregar pacientes');
         return;
       }
-      setPatients(data || []);
+      if (dentistsResult.error) {
+        toast.error('Erro ao carregar dentistas');
+        return;
+      }
+      
+      setPatients(patientsResult.data || []);
+      setDentists(dentistsResult.data || []);
     };
 
-    if (clinicId) fetchPatients();
+    if (clinicId) fetchData();
   }, [clinicId]);
 
   useEffect(() => {
@@ -98,6 +116,7 @@ export default function AppointmentNew() {
     const { error } = await supabase.from('appointments').insert({
       clinic_id: clinicId,
       patient_id: form.patient_id,
+      dentist_id: form.dentist_id || null,
       date: formatDateToDB(form.date),
       time: form.time,
       duration: parseInt(form.duration, 10),
@@ -152,6 +171,24 @@ export default function AppointmentNew() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Dentista */}
+            <div>
+              <Label>Dentista (Opcional)</Label>
+              <select
+                name="dentist_id"
+                value={form.dentist_id}
+                onChange={handleChange}
+                className="w-full border rounded p-2"
+              >
+                <option value="">Selecione um dentista</option>
+                {dentists.map((dentist) => (
+                  <option key={dentist.id} value={dentist.id}>
+                    {dentist.dentist_profiles?.full_name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Data */}

@@ -14,6 +14,7 @@ interface Appointment {
   time: string;
   duration: number;
   patient_id: string;
+  dentist_id: string | null;
   treatment_type: string | null;
   price: number | null;
   status: string;
@@ -25,6 +26,7 @@ export default function EditAppointment() {
   const navigate = useNavigate();
 
   const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [dentists, setDentists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,23 +35,39 @@ export default function EditAppointment() {
 
   const fetchAppointment = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("appointments")
-      .select("*")
-      .eq("id", id)
-      .single();
+    
+    const [appointmentResult, dentistsResult] = await Promise.all([
+      supabase
+        .from("appointments")
+        .select("*")
+        .eq("id", id)
+        .single(),
+      supabase
+        .from("dentists")
+        .select(`
+          id,
+          dentist_profiles!inner(full_name)
+        `)
+    ]);
 
-    if (error) {
+    if (appointmentResult.error) {
       toast.error("Erro ao carregar consulta");
-      console.error(error);
+      console.error(appointmentResult.error);
     } else {
       // ✅ Corrige a inversão de dia/mês ao carregar
-      if (data?.date && /^\d{4}-\d{2}-\d{2}$/.test(data.date)) {
-        const [year, month, day] = data.date.split("-");
-        data.date = `${day}/${month}/${year}`;
+      if (appointmentResult.data?.date && /^\d{4}-\d{2}-\d{2}$/.test(appointmentResult.data.date)) {
+        const [year, month, day] = appointmentResult.data.date.split("-");
+        appointmentResult.data.date = `${day}/${month}/${year}`;
       }
-      setAppointment(data);
+      setAppointment(appointmentResult.data);
     }
+
+    if (dentistsResult.error) {
+      toast.error("Erro ao carregar dentistas");
+    } else {
+      setDentists(dentistsResult.data || []);
+    }
+    
     setLoading(false);
   };
 
@@ -164,6 +182,23 @@ export default function EditAppointment() {
                 min={1}
                 title="Informe a duração da consulta em minutos"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="dentist_id">Dentista</Label>
+              <select
+                id="dentist_id"
+                className="w-full border rounded px-3 py-2"
+                value={appointment.dentist_id || ""}
+                onChange={(e) => handleChange("dentist_id", e.target.value || null)}
+              >
+                <option value="">Nenhum dentista</option>
+                {dentists.map((dentist) => (
+                  <option key={dentist.id} value={dentist.id}>
+                    {dentist.dentist_profiles?.full_name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

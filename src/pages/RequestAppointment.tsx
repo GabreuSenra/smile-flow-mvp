@@ -15,29 +15,47 @@ const RequestAppointment = () => {
     name: "",
     phone: "",
     treatment: "",
+    dentist: "",
     date: "",
     time: "",
     notes: "",
   });
   const [treatments, setTreatments] = useState<any[]>([]);
+  const [dentists, setDentists] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Buscar tratamentos da clínica
+  // Buscar tratamentos e dentistas da clínica
   useEffect(() => {
-    if (clinicId) fetchTreatments();
+    if (clinicId) fetchData();
   }, [clinicId]);
 
-  const fetchTreatments = async () => {
-    const { data, error } = await supabase
-      .from("treatment_types")
-      .select("*")
-      .eq("clinic_id", clinicId);
+  const fetchData = async () => {
+    const [treatmentsResult, dentistsResult] = await Promise.all([
+      supabase
+        .from("treatment_types")
+        .select("*")
+        .eq("clinic_id", clinicId),
+      supabase
+        .from("dentists")
+        .select(`
+          id,
+          work_hours,
+          dentist_profiles!inner(full_name)
+        `)
+        .eq("clinic_id", clinicId)
+    ]);
 
-    if (error) {
+    if (treatmentsResult.error) {
       toast.error("Erro ao carregar tratamentos");
     } else {
-      setTreatments(data || []);
+      setTreatments(treatmentsResult.data || []);
+    }
+
+    if (dentistsResult.error) {
+      toast.error("Erro ao carregar dentistas");
+    } else {
+      setDentists(dentistsResult.data || []);
     }
   };
 
@@ -58,9 +76,9 @@ const RequestAppointment = () => {
         patient_name: form.name,
         patient_phone: form.phone,
         treatment_type: selectedTreatment?.name,
-        treatment_price: selectedTreatment?.price || 0,
         preferred_date: form.date,
         preferred_time: form.time,
+        preferred_dentist_id: form.dentist || null,
         notes: form.notes,
       },
     ]);
@@ -133,6 +151,24 @@ const RequestAppointment = () => {
                   {treatments.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name} — R$ {t.price.toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Dentista (Opcional)</Label>
+              <Select
+                value={form.dentist}
+                onValueChange={(val) => setForm({ ...form, dentist: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um dentista (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dentists.map((dentist) => (
+                    <SelectItem key={dentist.id} value={dentist.id}>
+                      {dentist.dentist_profiles?.full_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
