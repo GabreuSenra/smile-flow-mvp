@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DentistWorkHours } from '@/components/DentistWorkHours';
 import { toast } from 'sonner';
 
 export interface Dentist {
@@ -238,6 +240,46 @@ export function DentistForm({
 export default function DentistDetailPage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const [dentist, setDentist] = useState<Dentist | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      fetchDentist(id);
+    }
+  }, [id]);
+
+  async function fetchDentist(dentistId: string) {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('dentists')
+        .select(`
+          *,
+          dentist_profiles:dentist_profile_id (
+            id,
+            full_name,
+            email,
+            phone
+          )
+        `)
+        .eq('id', dentistId)
+        .single();
+
+      if (error) {
+        console.error('Supabase error fetching dentist:', error);
+        toast.error('Erro ao carregar dentista');
+        return;
+      }
+
+      setDentist(data);
+    } catch (err: any) {
+      console.error('Erro inesperado ao buscar dentista:', err);
+      toast.error('Erro ao carregar dentista');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (!id) {
     return (
@@ -257,18 +299,59 @@ export default function DentistDetailPage() {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="w-full max-w-4xl">
+          <CardContent className="p-6">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-secondary rounded w-1/3"></div>
+              <div className="h-32 bg-secondary rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-4xl">
         <CardHeader>
-          <CardTitle>Editar Dentista</CardTitle>
+          <CardTitle>Gerenciar Dentista</CardTitle>
         </CardHeader>
         <CardContent>
-          <DentistForm
-            dentistId={id}
-            onSaved={() => navigate('/dentists')}
-            onCancel={() => navigate('/dentists')}
-          />
+          <Tabs defaultValue="profile" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="profile">Dados Pessoais</TabsTrigger>
+              <TabsTrigger value="schedule">Horários de Trabalho</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="profile">
+              <DentistForm
+                dentist={dentist}
+                dentistId={id}
+                onSaved={() => {
+                  fetchDentist(id!);
+                  toast.success('Dentista atualizado!');
+                }}
+                onCancel={() => navigate('/dentists')}
+              />
+            </TabsContent>
+            
+            <TabsContent value="schedule">
+              {dentist && (
+                <DentistWorkHours
+                  dentistId={dentist.id}
+                  currentWorkHours={dentist.work_hours}
+                  onSaved={() => {
+                    fetchDentist(id!);
+                    toast.success('Horários atualizados!');
+                  }}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

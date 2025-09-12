@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useRequireClinic } from '@/hooks/useRequireClinic';
+import { useDentistAvailability } from '@/hooks/useDentistAvailability';
 
 export default function AppointmentNew() {
   const navigate = useNavigate();
@@ -26,6 +27,13 @@ export default function AppointmentNew() {
     treatment_type: '',
     price: '',
     notes: ''
+  });
+  
+  const { availability, loading: availabilityLoading } = useDentistAvailability({
+    date: form.date ? formatDateToDB(form.date) : '',
+    clinicId: clinicId || '',
+    selectedDentistId: form.dentist_id,
+    duration: parseInt(form.duration) || 60
   });
 
   useEffect(() => {
@@ -212,15 +220,44 @@ export default function AppointmentNew() {
               <Label>
                 Hora <span className="text-red-500">*</span>
               </Label>
-              <Input
-                name="time"
-                value={form.time}
-                onChange={handleChange}
-                placeholder="hh:mm"
-                maxLength={5}
-                required
-                title="Informe a hora no formato hh:mm"
-              />
+              {form.date && form.dentist_id ? (
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">
+                    Horários disponíveis:
+                  </div>
+                  {availabilityLoading ? (
+                    <div className="text-sm">Carregando horários...</div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {availability
+                        .find(d => d.dentistId === form.dentist_id)
+                        ?.availableSlots.filter(slot => slot.available)
+                        .map(slot => (
+                          <Button
+                            key={slot.time}
+                            type="button"
+                            variant={form.time === slot.time ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setForm(prev => ({ ...prev, time: slot.time }))}
+                          >
+                            {slot.time}
+                          </Button>
+                        )) || <div className="text-sm text-muted-foreground">Nenhum horário disponível</div>}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Input
+                  name="time"
+                  value={form.time}
+                  onChange={handleChange}
+                  placeholder={!form.date ? "Selecione uma data primeiro" : !form.dentist_id ? "Selecione um dentista primeiro" : "hh:mm"}
+                  maxLength={5}
+                  required
+                  title="Informe a hora no formato hh:mm"
+                  disabled={!form.date || !form.dentist_id}
+                />
+              )}
             </div>
 
             {/* Duração */}
