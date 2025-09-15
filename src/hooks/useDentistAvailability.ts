@@ -62,13 +62,24 @@ export function useDentistAvailability({
 
       if (appointmentsError) throw appointmentsError;
 
-      // Get clinic schedule settings
-      const { data: clinicSettings, error: settingsError } = await supabase
-        .from('clinic_settings')
-        .select('setting_value')
-        .eq('clinic_id', clinicId)
-        .eq('setting_key', 'schedule')
-        .single();
+      // Get clinic schedule and room settings
+      const [clinicScheduleResult, roomSettingsResult] = await Promise.all([
+        supabase
+          .from('clinic_settings')
+          .select('setting_value')
+          .eq('clinic_id', clinicId)
+          .eq('setting_key', 'schedule')
+          .maybeSingle(),
+        supabase
+          .from('clinic_settings')
+          .select('setting_value')
+          .eq('clinic_id', clinicId)
+          .eq('setting_key', 'rooms')
+          .maybeSingle()
+      ]);
+
+      const { data: clinicSettings, error: settingsError } = clinicScheduleResult;
+      const { data: roomSettings } = roomSettingsResult;
 
       if (settingsError && settingsError.code !== 'PGRST116') {
         console.warn('Erro ao carregar configurações da clínica:', settingsError);
@@ -83,6 +94,8 @@ export function useDentistAvailability({
         saturday: { start: '08:00', end: '12:00' },
         sunday: { start: '08:00', end: '12:00' }
       };
+
+      const roomConfig = roomSettings?.setting_value as any || { total_rooms: 2 };
 
       // Generate availability for each dentist
       const dayOfWeek = getDayOfWeek(date);
@@ -125,8 +138,8 @@ export function useDentistAvailability({
           const slotStart = timeToMinutes(slot);
           const slotEnd = slotStart + duration;
 
-          // Check if this slot conflicts with any existing appointment
-          const hasConflict = dentistAppointments.some(appointment => {
+          // Check if this slot conflicts with any existing appointment for this dentist
+          const hasDentistConflict = dentistAppointments.some(appointment => {
             const appointmentStart = timeToMinutes(appointment.time);
             const appointmentEnd = appointmentStart + (appointment.duration || 60);
 
@@ -134,9 +147,20 @@ export function useDentistAvailability({
             return (slotStart < appointmentEnd && slotEnd > appointmentStart);
           });
 
+          // Check if we have reached the room limit for this time slot
+          const simultaneousAppointments = appointments?.filter(appointment => {
+            const appointmentStart = timeToMinutes(appointment.time);
+            const appointmentEnd = appointmentStart + (appointment.duration || 60);
+            
+            // Count appointments that overlap with this slot
+            return (slotStart < appointmentEnd && slotEnd > appointmentStart);
+          }).length || 0;
+
+          const hasRoomConflict = simultaneousAppointments >= roomConfig.total_rooms;
+
           return {
             time: slot,
-            available: !hasConflict,
+            available: !hasDentistConflict && !hasRoomConflict,
             dentistId: dentist.id
           };
         });

@@ -5,9 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WhatsappSettings from "@/pages/WhatsAppSettings";
 import TreatmentTypes from "@/pages/TreatmentTypes";
 import { ClinicScheduleSettings } from "@/components/ClinicScheduleSettings";
+import { ClinicRoomSettings } from "@/components/ClinicRoomSettings";
+import { useRequireClinic } from "@/hooks/useRequireClinic";
 
 export default function Settings() {
   const [tab, setTab] = useState("whatsapp");
+  const clinicId = useRequireClinic();
 
   return (
     <div className="min-h-screen bg-background">
@@ -27,6 +30,7 @@ export default function Settings() {
                 <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
                 <TabsTrigger value="treatments">Tipos de Consulta</TabsTrigger>
                 <TabsTrigger value="schedule">Horários</TabsTrigger>
+                <TabsTrigger value="rooms">Salas</TabsTrigger>
               </TabsList>
 
               <TabsContent value="whatsapp">
@@ -39,6 +43,10 @@ export default function Settings() {
 
               <TabsContent value="schedule">
                 <ClinicScheduleSettings />
+              </TabsContent>
+
+              <TabsContent value="rooms">
+                {clinicId && <ClinicRoomSettings clinicId={clinicId} />}
               </TabsContent>
             </Tabs>
           </CardContent>
