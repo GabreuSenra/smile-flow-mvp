@@ -60,6 +60,8 @@ export function ClinicRoomSettings({ clinicId }: ClinicRoomSettingsProps) {
           clinic_id: clinicId,
           setting_key: 'rooms',
           setting_value: roomSettings as any
+        }, {
+          onConflict: 'clinic_id,setting_key'
         });
 
       if (error) throw error;
