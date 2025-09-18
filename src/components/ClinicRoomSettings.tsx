@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Minus } from 'lucide-react';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 interface RoomSettings {
   total_rooms: number;
@@ -24,6 +25,7 @@ export function ClinicRoomSettings({ clinicId }: ClinicRoomSettingsProps) {
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { canAddRoom, planLimits, refreshCounts } = usePlanLimits();
 
   useEffect(() => {
     loadRoomSettings();
@@ -67,6 +69,7 @@ export function ClinicRoomSettings({ clinicId }: ClinicRoomSettingsProps) {
       if (error) throw error;
 
       toast.success('Configurações das salas salvas com sucesso!');
+      refreshCounts(); // Update counts after successful save
     } catch (error: any) {
       toast.error('Erro ao salvar configurações das salas: ' + error.message);
     } finally {
@@ -75,6 +78,11 @@ export function ClinicRoomSettings({ clinicId }: ClinicRoomSettingsProps) {
   };
 
   const addRoom = () => {
+    // Check plan limits before adding room
+    if (!canAddRoom()) {
+      return;
+    }
+
     const newRoomNumber = roomSettings.room_names.length + 1;
     setRoomSettings({
       total_rooms: roomSettings.total_rooms + 1,
@@ -117,9 +125,12 @@ export function ClinicRoomSettings({ clinicId }: ClinicRoomSettingsProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="outline">
             Total de Salas: {roomSettings.total_rooms}
+          </Badge>
+          <Badge variant="secondary">
+            Limite do Plano: {planLimits.rooms === -1 ? 'Ilimitado' : planLimits.rooms}
           </Badge>
         </div>
 

@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export default function DentistNew() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [clinicId, setClinicId] = useState<string | null>(null);
+  const { canAddDentist, refreshCounts } = usePlanLimits();
 
   useEffect(() => {
     async function fetchClinicId() {
@@ -47,6 +49,12 @@ export default function DentistNew() {
     try {
       if (!clinicId) {
         toast.error('Clínica não encontrada para este usuário.');
+        return;
+      }
+
+      // Check plan limits before adding dentist
+      if (!canAddDentist()) {
+        setLoading(false);
         return;
       }
 
@@ -92,6 +100,7 @@ export default function DentistNew() {
       if (dentistError) throw dentistError;
 
       toast.success('Dentista cadastrado com sucesso!');
+      refreshCounts(); // Update counts after successful insertion
       navigate('/dentists');
 
     } catch (error: any) {

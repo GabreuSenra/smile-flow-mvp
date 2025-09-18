@@ -30,8 +30,9 @@ const Plans = () => {
       icon: Building2,
       features: [
         'Até 100 pacientes',
+        'Máximo 2 dentistas',
+        'Máximo 2 salas/consultórios',
         'Agenda básica',
-        '2 dentistas',
         'Relatórios simples',
         'Suporte por email'
       ],
@@ -47,12 +48,14 @@ const Plans = () => {
       icon: Crown,
       features: [
         'Até 500 pacientes',
+        'Máximo 5 dentistas',
+        'Máximo 3 salas/consultórios',
+        'Link de agendamento online',
         'Agenda avançada',
-        '5 dentistas',
         'Relatórios completos',
         'Lembretes automáticos',
         'Integração WhatsApp',
-        'Suporte prioritário'
+        'Suporte por email'
       ],
       color: 'bg-purple-500',
       popular: true
@@ -67,13 +70,15 @@ const Plans = () => {
       icon: Zap,
       features: [
         'Pacientes ilimitados',
-        'Múltiplas clínicas',
         'Dentistas ilimitados',
+        'Salas/consultórios ilimitados',
+        'Link de agendamento online',
+        'Múltiplas clínicas',
         'Analytics avançados',
         'API personalizada',
         'Backup automático',
-        'Suporte 24/7',
-        'Gerente dedicado'
+        'Suporte prioritário',
+        'Requisição de funcionalidades'
       ],
       color: 'bg-gradient-to-r from-orange-500 to-red-500'
     }
@@ -266,30 +271,36 @@ const Plans = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td className="p-2">Pacientes</td>
-                      <td className="text-center p-2">Até 100</td>
-                      <td className="text-center p-2">Até 500</td>
-                      <td className="text-center p-2">Ilimitados</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2">Dentistas</td>
-                      <td className="text-center p-2">2</td>
-                      <td className="text-center p-2">5</td>
-                      <td className="text-center p-2">Ilimitados</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2">Lembretes Automáticos</td>
-                      <td className="text-center p-2">-</td>
-                      <td className="text-center p-2">✓</td>
-                      <td className="text-center p-2">✓</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2">Múltiplas Clínicas</td>
-                      <td className="text-center p-2">-</td>
-                      <td className="text-center p-2">-</td>
-                      <td className="text-center p-2">✓</td>
-                    </tr>
+                     <tr>
+                       <td className="p-2">Pacientes</td>
+                       <td className="text-center p-2">Até 100</td>
+                       <td className="text-center p-2">Até 500</td>
+                       <td className="text-center p-2">Ilimitados</td>
+                     </tr>
+                     <tr>
+                       <td className="p-2">Dentistas</td>
+                       <td className="text-center p-2">2</td>
+                       <td className="text-center p-2">5</td>
+                       <td className="text-center p-2">Ilimitados</td>
+                     </tr>
+                     <tr>
+                       <td className="p-2">Salas/Consultórios</td>
+                       <td className="text-center p-2">2</td>
+                       <td className="text-center p-2">3</td>
+                       <td className="text-center p-2">Ilimitados</td>
+                     </tr>
+                     <tr>
+                       <td className="p-2">Agendamento Online</td>
+                       <td className="text-center p-2">-</td>
+                       <td className="text-center p-2">✓</td>
+                       <td className="text-center p-2">✓</td>
+                     </tr>
+                     <tr>
+                       <td className="p-2">Suporte</td>
+                       <td className="text-center p-2">Email</td>
+                       <td className="text-center p-2">Email</td>
+                       <td className="text-center p-2">Prioritário</td>
+                     </tr>
                   </tbody>
                 </table>
               </div>

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { UserPlus, Search, Eye, Edit, Stethoscope } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 interface Dentist {
   id: string;
@@ -31,6 +32,7 @@ const Dentists = () => {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedDentist, setSelectedDentist] = useState<Dentist | null>(null);
+  const { planLimits, currentCounts, subscription_tier } = usePlanLimits();
 
   useEffect(() => {
     fetchDentists();
@@ -113,6 +115,14 @@ const Dentists = () => {
             <p className="text-muted-foreground">
               Gerencie o cadastro de dentistas da clínica
             </p>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="outline">
+                {currentCounts.dentists} de {planLimits.dentists === -1 ? '∞' : planLimits.dentists} dentistas
+              </Badge>
+              <Badge variant="secondary" className="capitalize">
+                Plano {subscription_tier}
+              </Badge>
+            </div>
           </div>
           <Link to="/dentists/new">
             <Button>

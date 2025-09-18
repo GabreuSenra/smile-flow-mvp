@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 export default function PatientNew() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [clinicId, setClinicId] = useState<string | null>(null);
+  const { canAddPatient, refreshCounts } = usePlanLimits();
 
   // 1️⃣ Buscar clinic_id do usuário logado
   useEffect(() => {
@@ -51,6 +53,12 @@ export default function PatientNew() {
         return;
       }
 
+      // Check plan limits before adding patient
+      if (!canAddPatient()) {
+        setLoading(false);
+        return;
+      }
+
       const form = e.currentTarget as HTMLFormElement;
       const formData = new FormData(form);
 
@@ -82,6 +90,7 @@ export default function PatientNew() {
       if (error) throw error;
 
       toast.success('Paciente cadastrado com sucesso!');
+      refreshCounts(); // Update counts after successful insertion
       navigate('/patients');
 
     } catch (error: any) {

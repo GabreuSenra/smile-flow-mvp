@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { OnlineBookingCheck } from "@/components/OnlineBookingCheck";
 
 const RequestAppointment = () => {
   const { clinicId } = useParams<{ clinicId: string }>();
@@ -109,8 +110,9 @@ const RequestAppointment = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <Card className="max-w-md w-full">
+    <OnlineBookingCheck>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Card className="max-w-md w-full">
         <CardHeader>
           <CardTitle>Marcar Consulta</CardTitle>
           <CardDescription>
@@ -211,6 +213,7 @@ const RequestAppointment = () => {
         </CardContent>
       </Card>
     </div>
+    </OnlineBookingCheck>
   );
 };
 
